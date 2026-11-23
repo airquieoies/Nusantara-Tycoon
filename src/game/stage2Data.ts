@@ -97,7 +97,7 @@ export const STAGE2_DISTRICTS: Stage2DistrictDef[] = [
     name: 'Kawasan Komersial & Perdagangan',
     subtitle: 'Pasar Grosir Modern, Kantor Dagang & Terminal Masa Depan',
     description:
-      'Pusat transaksi grosir barang industri, kantor niaga, bank, serta Terminal Kereta Cepat Masa Depan (Stage 3 Terkunci).',
+      'Pusat transaksi grosir barang industri, kantor niaga, bank, serta Terminal Kereta Cepat Nusantara menuju Kota Digital (Stage 3).',
     minX: -36,
     maxX: 34,
     minZ: -94,
@@ -494,7 +494,7 @@ export const STAGE2_COLLECTIBLES: Stage2CollectibleDef[] = [
     districtId: 's2-komersial',
     x: -4.0,
     z: -72.0,
-    hint: 'Di pelataran Terminal Masa Depan (Stage 3 Terkunci) sebelah utara.',
+    hint: 'Di pelataran Terminal Kereta Cepat Nusantara (gerbang Stage 3) sebelah utara.',
     description: 'Model konsep jaringan transportasi listrik berkecepatan tinggi untuk era berikutnya.',
     xpReward: 120,
     coinReward: 200,
@@ -1287,16 +1287,16 @@ export const STAGE2_QUESTS: Stage2QuestDef[] = [
     order: 8,
     giverNpcId: 's2-npc-kapten-ekspres',
     summary:
-      'Kota Industri kini stabil! Tinjau Terminal Kereta Cepat Masa Depan (Stage 3 Terkunci) dan temui Aditya di Pelabuhan Ekspres.',
+      'Kota Industri kini stabil! Tinjau Terminal Kereta Cepat Nusantara (gerbang Stage 3) dan temui Aditya di Pelabuhan Ekspres.',
     steps: [
       {
         id: 's2-q8-s1',
-        description: 'Inspeksi Terminal Kereta Cepat Masa Depan (Stage 3 Terkunci) di utara',
+        description: 'Inspeksi Terminal Kereta Cepat Nusantara (gerbang Stage 3) di utara',
         eventType: 'inspect_locked_stage3',
         targetId: 'lm-s2-stage3-terminal',
         waypointX: -4.0,
         waypointZ: -74.0,
-        waypointLabel: 'Terminal Stage 3 (Terkunci)',
+        waypointLabel: 'Terminal Kereta Cepat (Stage 3)',
       },
       {
         id: 's2-q8-s2',

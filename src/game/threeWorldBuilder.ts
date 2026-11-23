@@ -473,6 +473,83 @@ export function createNpcRig(npc: NpcWaypoint): {
     eyebrowStyle = 'lurus';
     badgeHex = '#a855f7';
     subtitle = 'Kurator Sejarah';
+  } else if (npc.id === 'npc-s3-coordinator') {
+    coatColor = 0x0f172a;
+    pantsColor = 0x1e293b;
+    accentColor = 0x38bdf8;
+    skinHex = '#cf9566';
+    hairHex = '#1e293b';
+    hairVariant = 'undercut';
+    facePreset = 'tegas';
+    eyebrowStyle = 'tebal';
+    mouthPreset = 'berwibawa';
+    badgeHex = '#22d3ee';
+    subtitle = 'Direktur Smart City';
+  } else if (npc.id === 'npc-s3-scientist') {
+    coatColor = 0xe2e8f0;
+    pantsColor = 0x1e293b;
+    accentColor = 0x06b6d4;
+    skinHex = '#e6b58a';
+    hairVariant = 'belah-tengah';
+    facePreset = 'cerdas';
+    eyebrowStyle = 'lurus';
+    badgeHex = '#06b6d4';
+    subtitle = 'Kepala Riset AI';
+  } else if (npc.id === 'npc-s3-transit') {
+    coatColor = 0x1d4ed8;
+    pantsColor = 0x0f172a;
+    accentColor = 0x22d3ee;
+    skinHex = '#b67a4e';
+    hairVariant = 'rapi';
+    facePreset = 'tegas';
+    eyebrowStyle = 'tebal';
+    badgeHex = '#38bdf8';
+    subtitle = 'Kepala Mobilitas EV';
+  } else if (npc.id === 'npc-s3-quantum') {
+    coatColor = 0x4c1d95;
+    pantsColor = 0x0f172a;
+    accentColor = 0xc084fc;
+    skinHex = '#e6b58a';
+    hairVariant = 'ponytail';
+    facePreset = 'cerdas';
+    eyebrowStyle = 'melengkung';
+    badgeHex = '#c084fc';
+    subtitle = 'Arsitek Kuantum';
+  } else if (npc.id === 'npc-s3-community') {
+    coatColor = 0x065f46;
+    pantsColor = 0x1e293b;
+    accentColor = 0x34d399;
+    skinHex = '#cf9566';
+    hairVariant = 'konde';
+    facePreset = 'lembut';
+    mouthPreset = 'ceria';
+    badgeHex = '#34d399';
+    subtitle = 'Ketua Komunitas Hijau';
+  } else if (npc.id === 'npc-s3-stylist') {
+    coatColor = 0xbe185d;
+    pantsColor = 0x1e1b4b;
+    accentColor = 0xf472b6;
+    skinHex = '#f2cba9';
+    hairVariant = 'ombak-panjang';
+    hairHex = '#4c1d95';
+    facePreset = 'ramah';
+    mouthPreset = 'ceria';
+    badgeHex = '#f472b6';
+    subtitle = 'Desainer Cyber-Batik';
+  } else if (npc.id === 'npc-s3-fintech') {
+    coatColor = 0x0f766e;
+    pantsColor = 0x0f172a;
+    accentColor = 0xfbbf24;
+    skinHex = '#cf9566';
+    hairVariant = 'undercut';
+    facePreset = 'cerdas';
+    eyebrowStyle = 'lurus';
+    badgeHex = '#f59e0b';
+    subtitle = 'Analis Fintech Global';
+  }
+
+  if (npc.id.startsWith('npc-s3-') && npc.characterId) {
+    subtitle = `${subtitle} · Era Digital`;
   }
 
   const skinMat = new THREE.MeshStandardMaterial({ color: skinHex, roughness: 0.62 });
@@ -593,6 +670,20 @@ export function createNpcRig(npc: NpcWaypoint): {
     rim.rotation.x = Math.PI / 2;
     rim.position.set(0, 1.91, 0);
     root.add(peci, rim);
+  } else if (npc.id.startsWith('npc-s3-')) {
+    const visorMat = new THREE.MeshStandardMaterial({
+      color: accentColor,
+      emissive: accentColor,
+      emissiveIntensity: 0.75,
+      roughness: 0.18,
+      metalness: 0.6,
+    });
+    const visor = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.075, 0.14), visorMat);
+    visor.position.set(0, 1.77, 0.2);
+    const tablet = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.34, 0.03), visorMat);
+    tablet.rotation.x = -0.35;
+    tablet.position.set(0.38, 0.98, 0.22);
+    root.add(visor, tablet);
   }
 
   const label = createFloatingLabelSprite(npc.name, subtitle, badgeHex);

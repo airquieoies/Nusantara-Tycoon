@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DashboardHub } from './components/DashboardHub';
 import { ModeBelajar } from './components/ModeBelajar';
 import { ModeBerlatih } from './components/ModeBerlatih';
@@ -6,6 +6,7 @@ import { ModeBermain } from './components/ModeBermain';
 import { PanduanModal } from './components/PanduanModal';
 import { TitleScreen } from './components/TitleScreen';
 import { audioEngine } from './game/audio';
+import { getGlobalProgressionSummary, loadMultiStageFromStorage } from './game/multiStageLogic';
 import { AppScreen, StageNumber } from './game/types';
 
 export default function App() {
@@ -26,11 +27,22 @@ export default function App() {
   const [highestCityStage, setHighestCityStage] = useState<StageNumber>(1);
   const [bestCityScore, setBestCityScore] = useState<number>(0);
   const [bestHotsScore, setBestHotsScore] = useState<number | null>(null);
+  const [selectedStageLaunch, setSelectedStageLaunch] = useState<StageNumber | null>(null);
+  const [summaryVersion, setSummaryVersion] = useState<number>(0);
 
-  // Sync document.body.dataset.state for non-playing screens
+  const worldSummary = useMemo(() => {
+    void summaryVersion;
+    return getGlobalProgressionSummary(loadMultiStageFromStorage());
+  }, [summaryVersion]);
+
+  // Sync document.body.dataset.state & refresh live summary when returning to title/dashboard
   useEffect(() => {
     if (screen === 'title') {
       document.body.dataset.state = 'title';
+      setSummaryVersion((v) => v + 1);
+    } else if (screen === 'dashboard') {
+      document.body.dataset.state = 'playing';
+      setSummaryVersion((v) => v + 1);
     } else if (screen !== 'bermain') {
       document.body.dataset.state = 'playing';
     }
@@ -44,6 +56,7 @@ export default function App() {
         e.preventDefault();
         audioEngine.unlockOnGesture();
         audioEngine.playClick();
+        setSelectedStageLaunch(null);
         setScreen('dashboard');
       }
     };
@@ -60,7 +73,17 @@ export default function App() {
   const handleNavigate = useCallback((nextScreen: AppScreen) => {
     audioEngine.unlockOnGesture();
     audioEngine.playClick();
+    if (nextScreen !== 'bermain') {
+      setSelectedStageLaunch(null);
+    }
     setScreen(nextScreen);
+  }, []);
+
+  const handlePlayStage = useCallback((stage?: StageNumber) => {
+    audioEngine.unlockOnGesture();
+    audioEngine.playClick();
+    setSelectedStageLaunch(stage ?? null);
+    setScreen('bermain');
   }, []);
 
   const handleCompleteModule = useCallback((moduleId: string, expReward: number) => {
@@ -85,8 +108,12 @@ export default function App() {
     <>
       {screen === 'title' && (
         <TitleScreen
+          summary={worldSummary}
+          learningExp={exp}
+          completedTopicsCount={completedTopicIds.length}
+          bestHotsScore={bestHotsScore}
           onStartHub={() => handleNavigate('dashboard')}
-          onQuickPlay={() => handleNavigate('bermain')}
+          onQuickPlay={handlePlayStage}
           onOpenPanduan={() => {
             audioEngine.unlockOnGesture();
             audioEngine.playClick();
@@ -99,7 +126,9 @@ export default function App() {
 
       {screen === 'dashboard' && (
         <DashboardHub
+          summary={worldSummary}
           onNavigate={handleNavigate}
+          onPlayStage={handlePlayStage}
           onOpenPanduan={() => {
             audioEngine.unlockOnGesture();
             audioEngine.playClick();
@@ -120,7 +149,7 @@ export default function App() {
           completedIds={completedTopicIds}
           onCompleteModule={handleCompleteModule}
           onBackDashboard={() => handleNavigate('dashboard')}
-          onGoToPlay={() => handleNavigate('bermain')}
+          onGoToPlay={() => handlePlayStage()}
           muted={muted}
           onToggleMute={handleToggleMute}
         />
@@ -128,6 +157,7 @@ export default function App() {
 
       {screen === 'bermain' && (
         <ModeBermain
+          initialStage={selectedStageLaunch}
           onBackDashboard={() => handleNavigate('dashboard')}
           onUpdateRecord={handleUpdateCityRecord}
           muted={muted}

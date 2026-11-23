@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Compass, Lock, MapPin, Navigation, Ship, X } from 'lucide-react';
+import { Compass, MapPin, Navigation, Ship, TrainFront, X } from 'lucide-react';
 import { BUILDING_CATALOG } from '../../game/data/bermainData';
 import { STAGE1_COLLECTIBLES, STAGE1_DISTRICTS, STAGE1_VEHICLES } from '../../game/stage1Data';
 import {
@@ -26,26 +26,46 @@ import {
   STAGE2_RAIL_X,
   STAGE2_SHORELINE_X,
 } from '../../game/stage2Physics';
+import {
+  STAGE3_COLLECTIBLES,
+  STAGE3_DISTRICTS,
+  STAGE3_ENTERABLE_BUILDINGS,
+  STAGE3_VEHICLES,
+} from '../../game/stage3Data';
+import {
+  getStage3Npcs,
+  STAGE3_MAX_X,
+  STAGE3_MAX_Z,
+  STAGE3_MIN_X,
+  STAGE3_MIN_Z,
+  STAGE3_MONORAIL_X,
+  STAGE3_SHORELINE_X,
+} from '../../game/stage3Physics';
+import { StageNumber } from '../../game/types';
 
 interface WorldMapModalProps {
   open: boolean;
   onClose: () => void;
-  activeStage?: 1 | 2;
+  activeStage?: StageNumber;
   playerX: number;
   playerZ: number;
   stage1PlayerPos?: { x: number; z: number };
   stage2PlayerPos?: { x: number; z: number };
+  stage3PlayerPos?: { x: number; z: number };
   discoveredDistricts: string[];
   stage1Discovered?: string[];
   stage2Discovered?: string[];
+  stage3Discovered?: string[];
   collectedArtifacts: string[];
   stage1Collected?: string[];
   stage2Collected?: string[];
+  stage3Collected?: string[];
   placedBuildings: PlacedBuildingInstance[];
   stage1Buildings?: PlacedBuildingInstance[];
   stage2Buildings?: PlacedBuildingInstance[];
+  stage3Buildings?: PlacedBuildingInstance[];
   questTarget?: { x: number; z: number; label: string } | null;
-  onTravelStage?: (targetStage: 1 | 2) => void;
+  onTravelStage?: (targetStage: StageNumber) => void;
 }
 
 const MAP_W = 680;
@@ -59,19 +79,32 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
   playerZ,
   stage1PlayerPos,
   stage2PlayerPos,
+  stage3PlayerPos,
   discoveredDistricts,
   stage1Discovered,
   stage2Discovered,
+  stage3Discovered,
   collectedArtifacts,
   stage1Collected,
   stage2Collected,
+  stage3Collected,
   placedBuildings,
   stage1Buildings,
   stage2Buildings,
+  stage3Buildings,
   questTarget,
   onTravelStage,
 }) => {
-  const [viewStage, setViewStage] = useState<1 | 2>(activeStage);
+  const [viewStage, setViewStage] = useState<StageNumber>(activeStage);
+  const [syncKey, setSyncKey] = useState<string>(`${open}:${activeStage}`);
+
+  const nextSyncKey = `${open}:${activeStage}`;
+  if (nextSyncKey !== syncKey) {
+    setSyncKey(nextSyncKey);
+    if (open) {
+      setViewStage(activeStage);
+    }
+  }
 
   useEffect(() => {
     if (open) setViewStage(activeStage);
@@ -79,36 +112,53 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
 
   if (!open) return null;
 
+  const isStage3 = viewStage === 3;
   const isStage2 = viewStage === 2;
-  const minX = isStage2 ? STAGE2_MIN_X : STAGE1_MIN_X;
-  const maxX = isStage2 ? STAGE2_MAX_X : STAGE1_MAX_X;
-  const minZ = isStage2 ? STAGE2_MIN_Z : STAGE1_MIN_Z;
-  const maxZ = isStage2 ? STAGE2_MAX_Z : STAGE1_MAX_Z;
-  const shoreVal = isStage2 ? STAGE2_SHORELINE_X : STAGE1_SHORELINE_X;
+  const minX = isStage3 ? STAGE3_MIN_X : isStage2 ? STAGE2_MIN_X : STAGE1_MIN_X;
+  const maxX = isStage3 ? STAGE3_MAX_X : isStage2 ? STAGE2_MAX_X : STAGE1_MAX_X;
+  const minZ = isStage3 ? STAGE3_MIN_Z : isStage2 ? STAGE2_MIN_Z : STAGE1_MIN_Z;
+  const maxZ = isStage3 ? STAGE3_MAX_Z : isStage2 ? STAGE2_MAX_Z : STAGE1_MAX_Z;
+  const shoreVal = isStage3
+    ? STAGE3_SHORELINE_X
+    : isStage2
+      ? STAGE2_SHORELINE_X
+      : STAGE1_SHORELINE_X;
 
   const toX = (wx: number) => ((wx - minX) / (maxX - minX)) * MAP_W;
   const toY = (wz: number) => ((wz - minZ) / (maxZ - minZ)) * MAP_H;
 
-  const districts = isStage2 ? STAGE2_DISTRICTS : STAGE1_DISTRICTS;
-  const npcs = isStage2 ? getStage2Npcs() : getStage1Npcs();
-  const collectibles = isStage2 ? STAGE2_COLLECTIBLES : STAGE1_COLLECTIBLES;
-  const vehicles = isStage2 ? STAGE2_VEHICLES : STAGE1_VEHICLES;
+  const districts = isStage3 ? STAGE3_DISTRICTS : isStage2 ? STAGE2_DISTRICTS : STAGE1_DISTRICTS;
+  const npcs = isStage3 ? getStage3Npcs() : isStage2 ? getStage2Npcs() : getStage1Npcs();
+  const collectibles = isStage3
+    ? STAGE3_COLLECTIBLES
+    : isStage2
+      ? STAGE2_COLLECTIBLES
+      : STAGE1_COLLECTIBLES;
+  const vehicles = isStage3 ? STAGE3_VEHICLES : isStage2 ? STAGE2_VEHICLES : STAGE1_VEHICLES;
 
-  const shownDiscovered = isStage2
-    ? stage2Discovered ?? discoveredDistricts
-    : stage1Discovered ?? discoveredDistricts;
-  const shownArtifacts = isStage2
-    ? stage2Collected ?? collectedArtifacts
-    : stage1Collected ?? collectedArtifacts;
-  const shownBuildings = isStage2
-    ? stage2Buildings ?? placedBuildings
-    : stage1Buildings ?? placedBuildings;
+  const shownDiscovered = isStage3
+    ? stage3Discovered ?? discoveredDistricts
+    : isStage2
+      ? stage2Discovered ?? discoveredDistricts
+      : stage1Discovered ?? discoveredDistricts;
+  const shownArtifacts = isStage3
+    ? stage3Collected ?? collectedArtifacts
+    : isStage2
+      ? stage2Collected ?? collectedArtifacts
+      : stage1Collected ?? collectedArtifacts;
+  const shownBuildings = isStage3
+    ? stage3Buildings ?? placedBuildings
+    : isStage2
+      ? stage2Buildings ?? placedBuildings
+      : stage1Buildings ?? placedBuildings;
   const shownPlayerPos =
     viewStage === activeStage
       ? { x: playerX, z: playerZ }
-      : isStage2
-        ? stage2PlayerPos ?? { x: 56, z: 0 }
-        : stage1PlayerPos ?? { x: -7.5, z: 0.4 };
+      : isStage3
+        ? stage3PlayerPos ?? { x: 0, z: -64 }
+        : isStage2
+          ? stage2PlayerPos ?? { x: 56, z: 0 }
+          : stage1PlayerPos ?? { x: -7.5, z: 0.4 };
 
   const shoreX = toX(shoreVal);
 
@@ -123,11 +173,20 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 px-5 py-3.5">
           <div>
             <div className="text-xs font-bold text-amber-300 uppercase">
-              Peta Dunia Terbuka · {isStage2 ? 'Stage 2: Kota Industri Global' : 'Stage 1: Kota Perdagangan'}
+              Peta Dunia Terbuka ·{' '}
+              {isStage3
+                ? 'Stage 3: Kota Digital Masa Depan'
+                : isStage2
+                  ? 'Stage 2: Kota Industri Global'
+                  : 'Stage 1: Kota Perdagangan'}
             </div>
             <h2 className="text-lg font-extrabold text-white">
-              {isStage2 ? 'Kota Industri Nusantara' : 'Kota Perdagangan Nusantara'} (
-              {shownDiscovered.length}/{districts.length} Kawasan Ditemukan)
+              {isStage3
+                ? 'Metropolis Digital Nusantara'
+                : isStage2
+                  ? 'Kota Industri Nusantara'
+                  : 'Kota Perdagangan Nusantara'}{' '}
+              ({shownDiscovered.length}/{districts.length} Kawasan Ditemukan)
             </h2>
           </div>
 
@@ -136,7 +195,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
               type="button"
               data-testid="map-view-stage-1"
               onClick={() => setViewStage(1)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold ${
                 viewStage === 1
                   ? 'bg-amber-500 text-slate-950'
                   : 'border border-slate-700 bg-slate-800 text-slate-300 hover:text-white'
@@ -148,7 +207,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
               type="button"
               data-testid="map-view-stage-2"
               onClick={() => setViewStage(2)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold ${
                 viewStage === 2
                   ? 'bg-sky-500 text-slate-950'
                   : 'border border-slate-700 bg-slate-800 text-slate-300 hover:text-white'
@@ -158,11 +217,15 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
             </button>
             <button
               type="button"
-              disabled
-              data-testid="map-view-stage-3-locked"
-              className="flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-950 px-2.5 py-1.5 text-xs font-bold text-slate-500 cursor-not-allowed"
+              data-testid="map-view-stage-3"
+              onClick={() => setViewStage(3)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold ${
+                viewStage === 3
+                  ? 'bg-cyan-400 text-slate-950'
+                  : 'border border-slate-700 bg-slate-800 text-slate-300 hover:text-white'
+              }`}
             >
-              <Lock className="h-3 w-3" /> Stage 3
+              Stage 3
             </button>
             <button
               type="button"
@@ -180,7 +243,13 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
             <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-950">
               <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} className="h-auto w-full">
                 {/* Land & Sea */}
-                <rect x={0} y={0} width={shoreX} height={MAP_H} fill={isStage2 ? '#1e293b' : '#1f3524'} />
+                <rect
+                  x={0}
+                  y={0}
+                  width={shoreX}
+                  height={MAP_H}
+                  fill={isStage3 ? '#0f172a' : isStage2 ? '#1e293b' : '#1f3524'}
+                />
                 <rect x={shoreX} y={0} width={MAP_W - shoreX} height={MAP_H} fill="#0c4a6e" />
 
                 {/* Districts */}
@@ -190,6 +259,12 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                   const dw = toX(Math.min(d.maxX, maxX)) - dx;
                   const dh = toY(Math.min(d.maxZ, maxZ)) - dy;
                   const known = shownDiscovered.includes(d.id);
+                  const labelY =
+                    d.id === 's3-smart-center'
+                      ? dy + dh - 22
+                      : d.id === 's3-green-tech'
+                        ? dy + 22
+                        : Math.max(15, dy + 15);
                   return (
                     <g key={d.id}>
                       <rect
@@ -205,9 +280,12 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                       />
                       <text
                         x={dx + dw / 2}
-                        y={dy + 18}
+                        y={labelY}
                         textAnchor="middle"
                         fill={known ? '#f8fafc' : '#94a3b8'}
+                        stroke="#020617"
+                        strokeWidth={3}
+                        paintOrder="stroke"
                         fontSize={10.5}
                         fontWeight={700}
                       >
@@ -217,7 +295,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                   );
                 })}
 
-                {!isStage2 ? (
+                {viewStage === 1 ? (
                   <>
                     {/* Stage 1 River */}
                     <rect
@@ -249,7 +327,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                     <line x1={toX(21.5)} y1={toY(-50)} x2={toX(21.5)} y2={toY(46)} stroke="#cbd5e1" strokeWidth={3} strokeOpacity={0.4} />
                     <line x1={toX(-29.5)} y1={toY(-68)} x2={toX(-29.5)} y2={toY(52)} stroke="#cbd5e1" strokeWidth={3} strokeOpacity={0.4} />
                   </>
-                ) : (
+                ) : viewStage === 2 ? (
                   <>
                     {/* Stage 2 Industrial River */}
                     <rect
@@ -290,7 +368,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                         <title>{eb.label}</title>
                       </rect>
                     ))}
-                    {/* Locked Stage 3 Terminal Marker */}
+                    {/* High-Speed Rail Terminal Marker to Stage 3 */}
                     <g>
                       <rect
                         x={toX(-4) - 9}
@@ -299,11 +377,109 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                         height={12}
                         rx={3}
                         fill="#0f172a"
-                        stroke="#38bdf8"
+                        stroke="#22d3ee"
                         strokeWidth={1.5}
                       />
-                      <text x={toX(-4)} y={toY(-74) - 10} textAnchor="middle" fill="#7dd3fc" fontSize={8.5} fontWeight={700}>
-                        Terminal Stage 3 (Terkunci)
+                      <text x={toX(-4)} y={toY(-74) - 10} textAnchor="middle" fill="#67e8f9" fontSize={8.5} fontWeight={700}>
+                        Terminal Kereta Cepat (Stage 3)
+                      </text>
+                    </g>
+                  </>
+                ) : (
+                  <>
+                    {/* Stage 3 Coastal Wind & Solar Pier */}
+                    <rect
+                      x={shoreX}
+                      y={toY(50)}
+                      width={Math.max(12, toX(104) - shoreX)}
+                      height={Math.max(8, toY(62) - toY(50))}
+                      fill="#0e7490"
+                      stroke="#22d3ee"
+                      strokeWidth={1}
+                    />
+                    <text
+                      x={toX(96)}
+                      y={toY(46)}
+                      textAnchor="middle"
+                      fill="#67e8f9"
+                      stroke="#020617"
+                      strokeWidth={3}
+                      paintOrder="stroke"
+                      fontSize={8.5}
+                      fontWeight={700}
+                    >
+                      Dermaga Energi Hijau
+                    </text>
+
+                    {/* Smart City Avenues & Cross-Boulevards */}
+                    <line x1={toX(-94)} y1={toY(0)} x2={shoreX} y2={toY(0)} stroke="#94a3b8" strokeWidth={4} strokeOpacity={0.55} />
+                    <line x1={toX(-86)} y1={toY(-38)} x2={shoreX} y2={toY(-38)} stroke="#94a3b8" strokeWidth={2.5} strokeOpacity={0.4} />
+                    <line x1={toX(-86)} y1={toY(38)} x2={shoreX} y2={toY(38)} stroke="#94a3b8" strokeWidth={2.5} strokeOpacity={0.4} />
+                    <line x1={toX(0)} y1={toY(-86)} x2={toX(0)} y2={toY(88)} stroke="#94a3b8" strokeWidth={4} strokeOpacity={0.55} />
+                    <line x1={toX(-28)} y1={toY(-72)} x2={toX(-28)} y2={toY(84)} stroke="#94a3b8" strokeWidth={2.5} strokeOpacity={0.4} />
+                    <line x1={toX(28)} y1={toY(-72)} x2={toX(28)} y2={toY(84)} stroke="#94a3b8" strokeWidth={2.5} strokeOpacity={0.4} />
+
+                    {/* Elevated Glass Skywalk */}
+                    <line
+                      x1={toX(-46)}
+                      y1={toY(-13)}
+                      x2={toX(46)}
+                      y2={toY(-13)}
+                      stroke="#38bdf8"
+                      strokeWidth={4}
+                      strokeOpacity={0.85}
+                    />
+                    {/* Elevated Monorail Track */}
+                    <line
+                      x1={toX(STAGE3_MONORAIL_X)}
+                      y1={0}
+                      x2={toX(STAGE3_MONORAIL_X)}
+                      y2={MAP_H}
+                      stroke="#22d3ee"
+                      strokeDasharray="6 4"
+                      strokeWidth={2.5}
+                    />
+
+                    {/* Enterable Futuristic Buildings */}
+                    {STAGE3_ENTERABLE_BUILDINGS.map((eb) => (
+                      <rect
+                        key={eb.id}
+                        x={toX(eb.x - eb.halfW)}
+                        y={toY(eb.z - eb.halfD)}
+                        width={Math.max(8, toX(eb.x + eb.halfW) - toX(eb.x - eb.halfW))}
+                        height={Math.max(8, toY(eb.z + eb.halfD) - toY(eb.z - eb.halfD))}
+                        fill="#1e293b"
+                        stroke="#38bdf8"
+                        strokeWidth={1}
+                      >
+                        <title>{eb.label}</title>
+                      </rect>
+                    ))}
+
+                    {/* High-Speed Train Station Back to Stage 2 */}
+                    <g>
+                      <rect
+                        x={toX(0) - 10}
+                        y={toY(-86) - 6}
+                        width={20}
+                        height={12}
+                        rx={3}
+                        fill="#0f172a"
+                        stroke="#22d3ee"
+                        strokeWidth={1.5}
+                      />
+                      <text
+                        x={toX(0)}
+                        y={toY(-86) - 21}
+                        textAnchor="middle"
+                        fill="#67e8f9"
+                        stroke="#020617"
+                        strokeWidth={3}
+                        paintOrder="stroke"
+                        fontSize={8.5}
+                        fontWeight={700}
+                      >
+                        Stasiun Kereta Cepat Hub
                       </text>
                     </g>
                   </>
@@ -324,7 +500,9 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                         stroke="#ffffff"
                         strokeWidth={1}
                       />
-                      <title>{def?.name ?? pb.buildingId} (Lv {pb.level})</title>
+                      <title>
+                        {def?.name ?? pb.buildingId} (Lv {pb.level})
+                      </title>
                     </g>
                   );
                 })}
@@ -375,7 +553,9 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                     stroke="#0f172a"
                     strokeWidth={1}
                   >
-                    <title>{n.name} — {n.role}</title>
+                    <title>
+                      {n.name} — {n.role}
+                    </title>
                   </circle>
                 ))}
 
@@ -383,7 +563,14 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                 {questTarget && viewStage === activeStage && (
                   <g>
                     <circle cx={toX(questTarget.x)} cy={toY(questTarget.z)} r={11} fill="#fbbf24" fillOpacity={0.32} />
-                    <circle cx={toX(questTarget.x)} cy={toY(questTarget.z)} r={5.5} fill="#fbbf24" stroke="#ffffff" strokeWidth={1.5} />
+                    <circle
+                      cx={toX(questTarget.x)}
+                      cy={toY(questTarget.z)}
+                      r={5.5}
+                      fill="#fbbf24"
+                      stroke="#ffffff"
+                      strokeWidth={1.5}
+                    />
                   </g>
                 )}
 
@@ -401,10 +588,10 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
 
             <div className="mt-2.5 flex flex-wrap gap-3 text-[11px] text-slate-300">
               <span className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded-full bg-emerald-500 border border-white" /> Posisi Pemain
+                <span className="h-3 w-3 rounded-full border border-white bg-emerald-500" /> Posisi Pemain
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded-full bg-amber-400 border border-white" /> Target Misi Aktif
+                <span className="h-3 w-3 rounded-full border border-white bg-amber-400" /> Target Misi Aktif
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="h-3 w-3 rounded-full bg-sky-400" /> NPC Utama
@@ -463,10 +650,10 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
               </div>
             )}
 
-            {/* Global Era Progression Status (Stage 1 Open, Stage 2 Open, Stage 3 Strictly Locked) */}
+            {/* Global Era Progression Status (Stage 1, Stage 2 & Stage 3 Open) */}
             <div className="rounded-xl border border-slate-700 bg-slate-950 p-3.5">
               <div className="flex items-center gap-1.5 text-xs font-bold text-slate-200">
-                <Ship className="h-3.5 w-3.5 text-amber-400" /> Pelabuhan Lintas Era Nusantara
+                <Ship className="h-3.5 w-3.5 text-amber-400" /> Transportasi Lintas Era Nusantara
               </div>
               <div className="mt-2 space-y-1.5 text-[11px]">
                 <div
@@ -506,7 +693,12 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                   }`}
                 >
                   <span className="flex items-center gap-1.5 font-bold">
-                    <Ship className="h-3.5 w-3.5 text-sky-400" /> Stage 2: Kota Industri Global
+                    {activeStage === 3 ? (
+                      <TrainFront className="h-3.5 w-3.5 text-sky-400" />
+                    ) : (
+                      <Ship className="h-3.5 w-3.5 text-sky-400" />
+                    )}{' '}
+                    Stage 2: Kota Industri Global
                   </span>
                   {activeStage === 2 ? (
                     <span className="font-bold text-sky-300">LOKASI SAAT INI</span>
@@ -520,7 +712,7 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                       }}
                       className="rounded bg-sky-500 px-2 py-0.5 text-[10px] font-extrabold text-slate-950 hover:bg-sky-400"
                     >
-                      Berlayar
+                      {activeStage === 3 ? 'Kereta Cepat' : 'Berlayar'}
                     </button>
                   ) : (
                     <span className="text-sky-300">TERBUKA</span>
@@ -528,13 +720,32 @@ export const WorldMapModal: React.FC<WorldMapModalProps> = ({
                 </div>
 
                 <div
-                  data-testid="stage3-locked-map-card"
-                  className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/70 px-2.5 py-1.5 text-slate-500"
+                  className={`flex items-center justify-between rounded-lg border px-2.5 py-1.5 ${
+                    activeStage === 3
+                      ? 'border-cyan-400/60 bg-cyan-950/40 text-cyan-200'
+                      : 'border-slate-700 bg-slate-900 text-slate-200'
+                  }`}
                 >
-                  <span className="flex items-center gap-1.5">
-                    <Lock className="h-3 w-3" /> Stage 3: Kota Digital Tanpa Batas
+                  <span className="flex items-center gap-1.5 font-bold">
+                    <TrainFront className="h-3.5 w-3.5 text-cyan-400" /> Stage 3: Kota Digital Masa Depan
                   </span>
-                  <span className="font-bold">TERKUNCI</span>
+                  {activeStage === 3 ? (
+                    <span className="font-bold text-cyan-300">LOKASI SAAT INI</span>
+                  ) : onTravelStage ? (
+                    <button
+                      type="button"
+                      data-testid="travel-to-stage-3-btn"
+                      onClick={() => {
+                        onClose();
+                        onTravelStage(3);
+                      }}
+                      className="rounded bg-cyan-400 px-2 py-0.5 text-[10px] font-extrabold text-slate-950 hover:bg-cyan-300"
+                    >
+                      Kereta Cepat
+                    </button>
+                  ) : (
+                    <span className="text-cyan-300">TERBUKA</span>
+                  )}
                 </div>
               </div>
             </div>

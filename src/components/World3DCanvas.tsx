@@ -41,12 +41,31 @@ import {
   updateStage2Camera,
   validateStage2BuildingPlacement,
 } from '../game/stage2Physics';
+import { findStage3DistrictAt } from '../game/stage3Data';
+import {
+  buildStage3WorldColliders,
+  createInitialStage3Vehicles,
+  findNearestStage3Interactable,
+  getStage3EnterableBuildingAt,
+  getStage3Npcs,
+  STAGE3_MAX_Z,
+  STAGE3_MIN_X,
+  STAGE3_MIN_Z,
+  STAGE3_SHORELINE_X,
+  Stage3Interactable,
+  stage3GroundHeightAt,
+  stepStage3Player,
+  stepStage3VehiclePhysics,
+  updateStage3Camera,
+  validateStage3BuildingPlacement,
+} from '../game/stage3Physics';
 import { FacialExpression } from '../game/threeCharacterRig';
 import {
   buildStage1OverhaulWorld,
   Stage1OverhaulWorldHandle,
 } from '../game/threeStage1OverhaulWorld';
 import { createStage2IndustrialWorld } from '../game/threeStage2World';
+import { createStage3FutureWorld } from '../game/threeStage3World';
 import {
   createConstructionSiteMesh,
   createFloatingLabelSprite,
@@ -59,7 +78,7 @@ import {
   PlayerRig,
   WorldTextures,
 } from '../game/threeWorldBuilder';
-import { VehicleKind } from '../game/types';
+import { StageNumber, VehicleKind } from '../game/types';
 import {
   AabbCollider,
   createInitialCameraState,
@@ -68,10 +87,10 @@ import {
   ThirdPersonCamState,
 } from '../game/world3dPhysics';
 
-export type WorldInteractable = Stage1Interactable | Stage2Interactable;
+export type WorldInteractable = Stage1Interactable | Stage2Interactable | Stage3Interactable;
 
 export interface World3DCanvasProps {
-  activeStage: 1 | 2;
+  activeStage: StageNumber;
   paused: boolean;
   pointerLockRequestId: number;
   appearance: CharacterAppearance;
@@ -164,6 +183,8 @@ function getInteractableKey(target: WorldInteractable | null): string {
   if (target.kind === 'collectible') return `col:${target.collectible.id}`;
   if (target.kind === 'delivery') return `del:${target.delivery.id}`;
   if (target.kind === 'factory_station') return `fac:${target.station.id}`;
+  if (target.kind === 'activity_station') return `act:${target.station.id}`;
+  if (target.kind === 'elevator_pad') return `elev:${target.pad.id}`;
   if (target.kind === 'stage_transition') return `stg:${target.targetStage}`;
   if (target.kind === 'locked_stage3') return `s3:${target.landmark.id}`;
   if (target.kind === 'wardrobe_mirror') return `mirror:${target.spot.id}`;
@@ -183,6 +204,10 @@ const _nightSky = new THREE.Color(0x0f172a);
 const _s2DaySky = new THREE.Color(0xb6c5d6);
 const _s2NoonSky = new THREE.Color(0x93c5fd);
 const _s2DuskSky = new THREE.Color(0x9a5846);
+const _s3DaySky = new THREE.Color(0x8ecae6);
+const _s3NoonSky = new THREE.Color(0x67e8f9);
+const _s3DuskSky = new THREE.Color(0x5b3b8c);
+const _s3NightSky = new THREE.Color(0x060b19);
 const _sunColor = new THREE.Color();
 const _daySun = new THREE.Color(0xffe1b0);
 const _duskSun = new THREE.Color(0xfb923c);
@@ -190,18 +215,19 @@ const _nightSun = new THREE.Color(0x93c5fd);
 
 function updateLightingForTime(
   timeOfDay: number,
-  stage: 1 | 2,
+  stage: StageNumber,
   scene: THREE.Scene,
   dirLight: THREE.DirectionalLight,
   hemiLight: THREE.HemisphereLight
 ) {
-  const dayBase = stage === 2 ? _s2DaySky : _daySky;
-  const noonBase = stage === 2 ? _s2NoonSky : _noonSky;
-  const duskBase = stage === 2 ? _s2DuskSky : _duskSky;
+  const dayBase = stage === 3 ? _s3DaySky : stage === 2 ? _s2DaySky : _daySky;
+  const noonBase = stage === 3 ? _s3NoonSky : stage === 2 ? _s2NoonSky : _noonSky;
+  const duskBase = stage === 3 ? _s3DuskSky : stage === 2 ? _s2DuskSky : _duskSky;
+  const nightBase = stage === 3 ? _s3NightSky : _nightSky;
 
   if (timeOfDay < 0.25) {
     const t = timeOfDay / 0.25;
-    _skyColor.lerpColors(_nightSky, dayBase, t);
+    _skyColor.lerpColors(nightBase, dayBase, t);
     _sunColor.lerpColors(_nightSun, _daySun, t);
     dirLight.intensity = 0.7 + t * 1.5;
     hemiLight.intensity = 0.35 + t * 0.4;
@@ -219,7 +245,7 @@ function updateLightingForTime(
     hemiLight.intensity = 0.74 - t * 0.22;
   } else {
     const t = Math.min(1, (timeOfDay - 0.78) / 0.14);
-    _skyColor.lerpColors(duskBase, _nightSky, t);
+    _skyColor.lerpColors(duskBase, nightBase, t);
     _sunColor.lerpColors(_duskSun, _nightSun, t);
     dirLight.intensity = 1.4 - t * 0.75;
     hemiLight.intensity = 0.52 - t * 0.18;
@@ -237,12 +263,25 @@ function updateLightingForTime(
   dirLight.position.set(Math.cos(sunAng) * 55, 22 + Math.abs(Math.sin(sunAng)) * 42, -28);
 }
 
-function getGroundHeight(stage: 1 | 2, x: number, z: number): number {
+function getGroundHeight(stage: StageNumber, x: number, z: number, currentY = 0): number {
+  if (stage === 3) return stage3GroundHeightAt(x, z, currentY);
   return stage === 2 ? stage2GroundHeightAt(x, z) : stage1GroundHeightAt(x, z);
 }
 
-function buildCollidersForStage(stage: 1 | 2, placed: PlacedBuildingInstance[]): AabbCollider[] {
+function buildCollidersForStage(stage: StageNumber, placed: PlacedBuildingInstance[]): AabbCollider[] {
+  if (stage === 3) return buildStage3WorldColliders(placed);
   return stage === 2 ? buildStage2WorldColliders(placed) : buildStage1WorldColliders(placed);
+}
+
+function createVehiclesForStage(stage: StageNumber): VehicleRuntimeState[] {
+  if (stage === 3) return createInitialStage3Vehicles();
+  return stage === 2 ? createInitialStage2Vehicles() : createInitialVehicles();
+}
+
+function getStageFallbackSpawn(stage: StageNumber): { x: number; y: number; z: number; facingYaw: number } {
+  if (stage === 3) return { x: 0.0, y: 0.0, z: -64.0, facingYaw: 0.0 };
+  if (stage === 2) return { x: 56.0, y: 0.72, z: 0.0, facingYaw: -Math.PI / 2 };
+  return { x: -7.5, y: 0.0, z: 0.4, facingYaw: Math.PI / 2 };
 }
 
 interface RemoteRigEntry {
@@ -304,7 +343,7 @@ export const World3DCanvas: React.FC<World3DCanvasProps> = ({
   const pausedRef = useRef(paused);
   pausedRef.current = paused;
 
-  const activeStageRef = useRef<1 | 2>(activeStage);
+  const activeStageRef = useRef<StageNumber>(activeStage);
   activeStageRef.current = activeStage;
 
   const remotePlayersRef = useRef<RemotePlayerSnapshot[]>(remotePlayers);
@@ -387,11 +426,7 @@ export const World3DCanvas: React.FC<World3DCanvasProps> = ({
     onPointerLockChange,
   };
 
-  const startPos =
-    initialPlayerPos ??
-    (activeStage === 2
-      ? { x: 56.0, y: 0.72, z: 0.0, facingYaw: -Math.PI / 2 }
-      : { x: -7.5, y: 0, z: 0.4, facingYaw: Math.PI / 2 });
+  const startPos = initialPlayerPos ?? getStageFallbackSpawn(activeStage);
 
   const playerRef = useRef<Player3DState>({
     ...createInitialPlayerState(),
@@ -402,12 +437,12 @@ export const World3DCanvas: React.FC<World3DCanvasProps> = ({
   });
   const camRef = useRef<ThirdPersonCamState>(createInitialCameraState(playerRef.current));
   const collidersRef = useRef<AabbCollider[]>(buildCollidersForStage(activeStage, placedBuildings));
-  const vehiclesRef = useRef<VehicleRuntimeState[]>(
-    activeStage === 2 ? createInitialStage2Vehicles() : createInitialVehicles()
-  );
+  const vehiclesRef = useRef<VehicleRuntimeState[]>(createVehiclesForStage(activeStage));
   const activeVehicleIdRef = useRef<string | null>(null);
   const nearTargetRef = useRef<WorldInteractable | null>(null);
-  const lastDistrictRef = useRef<string>(activeStage === 2 ? 's2-transportasi' : 'pusat-kota');
+  const lastDistrictRef = useRef<string>(
+    activeStage === 3 ? 's3-smart-center' : activeStage === 2 ? 's2-transportasi' : 'pusat-kota'
+  );
   const lastInteriorRef = useRef<string | null>(null);
   const lastShipRef = useRef<string | null>(null);
   const ghostPreviewRef = useRef<{ x: number; z: number; valid: boolean; reason: string }>({
@@ -425,7 +460,7 @@ export const World3DCanvas: React.FC<World3DCanvasProps> = ({
     hemiLight: THREE.HemisphereLight;
     textures: WorldTextures;
     world: Stage1OverhaulWorldHandle;
-    loadedStage: 1 | 2;
+    loadedStage: StageNumber;
     playerRig: PlayerRig;
     npcRigs: {
       id: string;
@@ -449,11 +484,11 @@ export const World3DCanvas: React.FC<World3DCanvasProps> = ({
     >;
     ghostHandle: { group: THREE.Group; setValid: (v: boolean) => void };
     renderer: THREE.WebGLRenderer;
-    rebuildStageWorld: (targetStage: 1 | 2) => void;
+    rebuildStageWorld: (targetStage: StageNumber) => void;
   } | null>(null);
 
   const syncWorldStateVisibility = (
-    stage: 1 | 2,
+    stage: StageNumber,
     world: Stage1OverhaulWorldHandle,
     collectedPk: string[],
     collectedArt: string[],
@@ -467,8 +502,9 @@ export const World3DCanvas: React.FC<World3DCanvasProps> = ({
       mesh.visible = !collectedArt.includes(id);
     }
     for (const [id, mesh] of world.deliveryMeshes.entries()) {
-      const isRepeatableS2 = stage === 2 && (id === 's2-del-gudang' || id === 's2-del-grosir');
-      mesh.visible = isRepeatableS2 ? true : !completedDel.includes(id);
+      const isRepeatable =
+        (stage === 2 && (id === 's2-del-gudang' || id === 's2-del-grosir')) || stage === 3;
+      mesh.visible = isRepeatable ? true : !completedDel.includes(id);
     }
     if (waypoint) {
       world.questBeacon.visible = true;
@@ -570,14 +606,37 @@ export const World3DCanvas: React.FC<World3DCanvasProps> = ({
     );
   }, [collectedPickups, collectedArtifacts, completedDeliveries, trackedWaypoint, activeStage]);
 
+  const dispatchInteractTarget = (target: WorldInteractable) => {
+    if (target.kind === 'elevator_pad') {
+      if (activeVehicleIdRef.current) {
+        activeVehicleIdRef.current = null;
+        callbacksRef.current.onRideVehicle(null);
+      }
+      const pad = target.pad;
+      playerRef.current = {
+        ...playerRef.current,
+        x: pad.destX,
+        y: pad.toY,
+        z: pad.destZ,
+        vy: 0,
+        grounded: true,
+        speed: 0,
+      };
+      camRef.current = {
+        ...camRef.current,
+        targetX: pad.destX,
+        targetY: pad.toY + 1.65,
+        targetZ: pad.destZ,
+      };
+    }
+    callbacksRef.current.onInteract(target);
+  };
+
   // Reset player position when storage reset triggered
   useEffect(() => {
     if (resetPositionSignal === 0) return;
     const stage = activeStageRef.current;
-    const resetPos =
-      stage === 2
-        ? { x: 56.0, y: 0.72, z: 0.0, facingYaw: -Math.PI / 2 }
-        : { x: -7.5, y: 0, z: 0.4, facingYaw: Math.PI / 2 };
+    const resetPos = getStageFallbackSpawn(stage);
     const resetState: Player3DState = {
       ...createInitialPlayerState(),
       x: resetPos.x,
@@ -587,17 +646,17 @@ export const World3DCanvas: React.FC<World3DCanvasProps> = ({
     };
     playerRef.current = resetState;
     camRef.current = createInitialCameraState(resetState);
-    vehiclesRef.current = stage === 2 ? createInitialStage2Vehicles() : createInitialVehicles();
+    vehiclesRef.current = createVehiclesForStage(stage);
     activeVehicleIdRef.current = null;
   }, [resetPositionSignal]);
 
-  // Handle touch button actions
+  // Handle touch button & prompt click actions
   useEffect(() => {
     if (!touchActionQueue) return;
     if (touchActionQueue.action === 'jump') {
       jumpQueueRef.current = true;
     } else if (touchActionQueue.action === 'interact' && nearTargetRef.current) {
-      callbacksRef.current.onInteract(nearTargetRef.current);
+      dispatchInteractTarget(nearTargetRef.current);
     } else if (touchActionQueue.action === 'vehicle') {
       vehicleToggleQueueRef.current = true;
     }
@@ -699,22 +758,25 @@ export const World3DCanvas: React.FC<World3DCanvasProps> = ({
     ghostHandle.group.visible = false;
     scene.add(ghostHandle.group);
 
-    const spawnStageObjects = (stage: 1 | 2) => {
+    const spawnStageObjects = (stage: StageNumber) => {
       const world =
-        stage === 2
-          ? createStage2IndustrialWorld(textures)
-          : buildStage1OverhaulWorld(textures);
+        stage === 3
+          ? createStage3FutureWorld(textures)
+          : stage === 2
+            ? createStage2IndustrialWorld(textures)
+            : buildStage1OverhaulWorld(textures);
       scene.add(world.root);
 
-      const npcDefs = stage === 2 ? getStage2Npcs() : getStage1Npcs();
+      const npcDefs =
+        stage === 3 ? getStage3Npcs() : stage === 2 ? getStage2Npcs() : getStage1Npcs();
       const npcRigs = npcDefs.map((npc) => {
         const rig = createNpcRig(npc);
-        rig.root.position.y = getGroundHeight(stage, npc.x, npc.z);
+        rig.root.position.y = getGroundHeight(stage, npc.x, npc.z, 0);
         scene.add(rig.root);
         return { id: npc.id, root: rig.root, x: npc.x, update: rig.update, dispose: rig.dispose };
       });
 
-      const vList = stage === 2 ? createInitialStage2Vehicles() : createInitialVehicles();
+      const vList = createVehiclesForStage(stage);
       vehiclesRef.current = vList;
       const vehicleMeshes = new Map<string, THREE.Group>();
       for (const v of vList) {
@@ -739,7 +801,7 @@ export const World3DCanvas: React.FC<World3DCanvasProps> = ({
 
     const initialBuilt = spawnStageObjects(activeStageRef.current);
 
-    const rebuildStageWorld = (targetStage: 1 | 2) => {
+    const rebuildStageWorld = (targetStage: StageNumber) => {
       const h = sceneHandlesRef.current;
       if (!h) return;
 
@@ -762,14 +824,12 @@ export const World3DCanvas: React.FC<World3DCanvasProps> = ({
       nearTargetRef.current = null;
       lastInteriorRef.current = null;
       lastShipRef.current = null;
-      lastDistrictRef.current = targetStage === 2 ? 's2-transportasi' : 'pusat-kota';
+      lastDistrictRef.current =
+        targetStage === 3 ? 's3-smart-center' : targetStage === 2 ? 's2-transportasi' : 'pusat-kota';
       callbacksRef.current.onNearInteractableChange(null);
       callbacksRef.current.onRideVehicle(null);
 
-      const fallbackPos =
-        targetStage === 2
-          ? { x: 56.0, y: 0.72, z: 0.0, facingYaw: -Math.PI / 2 }
-          : { x: 55.5, y: 0.72, z: -3.2, facingYaw: -Math.PI / 2 };
+      const fallbackPos = getStageFallbackSpawn(targetStage);
       const spawn = propsRef.current.initialPlayerPos ?? fallbackPos;
       playerRef.current = {
         ...createInitialPlayerState(),
@@ -874,15 +934,17 @@ export const World3DCanvas: React.FC<World3DCanvasProps> = ({
               dz = Math.max(-44, Math.min(44, veh.z));
             }
           } else {
-            const minX = stage === 2 ? -108 : -110;
-            const maxX = stage === 2 ? 51 : 50;
+            const minX = stage === 3 ? STAGE3_MIN_X + 2 : stage === 2 ? -108 : -110;
+            const maxX = stage === 3 ? STAGE3_SHORELINE_X - 2 : stage === 2 ? 51 : 50;
+            const minZ = stage === 3 ? STAGE3_MIN_Z + 2 : -88;
+            const maxZ = stage === 3 ? STAGE3_MAX_Z - 2 : 88;
             dx = Math.max(minX, Math.min(maxX, veh.x + Math.cos(veh.yaw) * 1.6));
-            dz = Math.max(-88, Math.min(88, veh.z - Math.sin(veh.yaw) * 1.6));
+            dz = Math.max(minZ, Math.min(maxZ, veh.z - Math.sin(veh.yaw) * 1.6));
           }
           playerRef.current = {
             ...playerRef.current,
             x: dx,
-            y: getGroundHeight(stage, dx, dz),
+            y: getGroundHeight(stage, dx, dz, 0),
             z: dz,
             vy: 0,
             grounded: true,
@@ -918,7 +980,7 @@ export const World3DCanvas: React.FC<World3DCanvasProps> = ({
         }
       } else if (code === 'KeyE' && !e.repeat) {
         if (!pausedRef.current && nearTargetRef.current) {
-          callbacksRef.current.onInteract(nearTargetRef.current);
+          dispatchInteractTarget(nearTargetRef.current);
         }
       } else if (code === 'KeyF' && !e.repeat) {
         if (!pausedRef.current) {
@@ -1195,9 +1257,11 @@ export const World3DCanvas: React.FC<World3DCanvasProps> = ({
           const idx = vehiclesRef.current.findIndex((v) => v.def.id === activeVehicleIdRef.current);
           if (idx >= 0) {
             const nextVeh =
-              stage === 2
-                ? stepStage2VehiclePhysics(vehiclesRef.current[idx], { forward, right }, collidersRef.current, dt)
-                : stepVehiclePhysics(vehiclesRef.current[idx], { forward, right }, collidersRef.current, dt);
+              stage === 3
+                ? stepStage3VehiclePhysics(vehiclesRef.current[idx], { forward, right }, collidersRef.current, dt)
+                : stage === 2
+                  ? stepStage2VehiclePhysics(vehiclesRef.current[idx], { forward, right }, collidersRef.current, dt)
+                  : stepVehiclePhysics(vehiclesRef.current[idx], { forward, right }, collidersRef.current, dt);
             vehiclesRef.current[idx] = nextVeh;
             ridingKind = nextVeh.def.kind;
             const vMesh = h.vehicleMeshes.get(nextVeh.def.id);
@@ -1208,11 +1272,17 @@ export const World3DCanvas: React.FC<World3DCanvasProps> = ({
             const seatY =
               nextVeh.def.kind === 'bicycle'
                 ? 0.25
-                : nextVeh.def.kind === 'cart'
-                  ? 0.55
-                  : nextVeh.def.kind === 'boat'
-                    ? 0.22
-                    : 0.95;
+                : nextVeh.def.kind === 'ev_moto'
+                  ? 0.28
+                  : nextVeh.def.kind === 'cart'
+                    ? 0.55
+                    : nextVeh.def.kind === 'boat'
+                      ? 0.22
+                      : nextVeh.def.kind === 'ev_car' || nextVeh.def.kind === 'autonomous_taxi'
+                        ? 0.52
+                        : nextVeh.def.kind === 'courier_pod'
+                          ? 0.65
+                          : 0.95;
             playerRef.current = {
               ...playerRef.current,
               x: nextVeh.x,
@@ -1225,21 +1295,29 @@ export const World3DCanvas: React.FC<World3DCanvasProps> = ({
           }
         } else {
           const nextPlayer =
-            stage === 2
-              ? stepStage2PlayerPhysics(
+            stage === 3
+              ? stepStage3Player(
                   playerRef.current,
                   { forward, right, sprint, jump },
                   camRef.current.yaw,
                   collidersRef.current,
                   dt
                 )
-              : stepStage1PlayerPhysics(
-                  playerRef.current,
-                  { forward, right, sprint, jump },
-                  camRef.current.yaw,
-                  collidersRef.current,
-                  dt
-                );
+              : stage === 2
+                ? stepStage2PlayerPhysics(
+                    playerRef.current,
+                    { forward, right, sprint, jump },
+                    camRef.current.yaw,
+                    collidersRef.current,
+                    dt
+                  )
+                : stepStage1PlayerPhysics(
+                    playerRef.current,
+                    { forward, right, sprint, jump },
+                    camRef.current.yaw,
+                    collidersRef.current,
+                    dt
+                  );
           playerRef.current = nextPlayer;
         }
         lastRidingKind = ridingKind;
@@ -1272,18 +1350,24 @@ export const World3DCanvas: React.FC<World3DCanvasProps> = ({
         }
 
         const nextCam =
-          stage === 2
-            ? updateStage2Camera(camRef.current, p, collidersRef.current, dt)
-            : updateStage1Camera(camRef.current, p, collidersRef.current, dt);
+          stage === 3
+            ? updateStage3Camera(camRef.current, p, collidersRef.current, dt)
+            : stage === 2
+              ? updateStage2Camera(camRef.current, p, collidersRef.current, dt)
+              : updateStage1Camera(camRef.current, p, collidersRef.current, dt);
         camRef.current = nextCam;
         camera.position.set(nextCam.x, nextCam.y, nextCam.z);
         camera.lookAt(nextCam.targetX, nextCam.targetY, nextCam.targetZ);
 
         // Enterable Interiors (auto-hide roof)
         const insideBuilding =
-          stage === 2
-            ? getStage2EnterableBuildingAt(p.x, p.z)
-            : getStage1EnterableBuildingAt(p.x, p.z);
+          stage === 3
+            ? p.y < 4.5
+              ? getStage3EnterableBuildingAt(p.x, p.z)
+              : null
+            : stage === 2
+              ? getStage2EnterableBuildingAt(p.x, p.z)
+              : getStage1EnterableBuildingAt(p.x, p.z);
         for (const [bId, roofObj] of h.world.interiorRoofs.entries()) {
           roofObj.visible = insideBuilding?.id !== bId;
         }
@@ -1295,9 +1379,11 @@ export const World3DCanvas: React.FC<World3DCanvasProps> = ({
 
         // Boarded Ships
         const shipId =
-          stage === 2
-            ? getStage2BoardedShipId(p.x, p.z, p.y)
-            : getStage1BoardedShipId(p.x, p.z, p.y);
+          stage === 3
+            ? null
+            : stage === 2
+              ? getStage2BoardedShipId(p.x, p.z, p.y)
+              : getStage1BoardedShipId(p.x, p.z, p.y);
         if (shipId && shipId !== lastShipRef.current) {
           callbacksRef.current.onBoardShip(shipId);
         }
@@ -1306,7 +1392,11 @@ export const World3DCanvas: React.FC<World3DCanvasProps> = ({
         // Ghost Building Preview
         const placeId = propsRef.current.placementBuildingId;
         const validatePlacement =
-          stage === 2 ? validateStage2BuildingPlacement : validateFreeBuildingPlacement;
+          stage === 3
+            ? validateStage3BuildingPlacement
+            : stage === 2
+              ? validateStage2BuildingPlacement
+              : validateFreeBuildingPlacement;
 
         if (placeId) {
           h.ghostHandle.group.visible = true;
@@ -1399,28 +1489,40 @@ export const World3DCanvas: React.FC<World3DCanvasProps> = ({
           }
 
           const district =
-            stage === 2 ? findStage2DistrictAt(p.x, p.z).id : findDistrictAt(p.x, p.z).id;
+            stage === 3
+              ? findStage3DistrictAt(p.x, p.z).id
+              : stage === 2
+                ? findStage2DistrictAt(p.x, p.z).id
+                : findDistrictAt(p.x, p.z).id;
           if (district !== lastDistrictRef.current) {
             lastDistrictRef.current = district;
             callbacksRef.current.onDistrictChange(district);
           }
 
           const nextNear: WorldInteractable | null =
-            stage === 2
-              ? findNearestStage2Interactable(p.x, p.z, {
+            stage === 3
+              ? findNearestStage3Interactable(p.x, p.y, p.z, {
                   collectedPickups: propsRef.current.collectedPickups,
                   collectedArtifacts: propsRef.current.collectedArtifacts,
                   completedDeliveries: propsRef.current.completedDeliveries,
                   placedBuildings: propsRef.current.placedBuildings,
                   vehicles: vehiclesRef.current,
                 })
-              : findNearestStage1Interactable(p.x, p.z, {
-                  collectedPickups: propsRef.current.collectedPickups,
-                  collectedArtifacts: propsRef.current.collectedArtifacts,
-                  completedDeliveries: propsRef.current.completedDeliveries,
-                  placedBuildings: propsRef.current.placedBuildings,
-                  vehicles: vehiclesRef.current,
-                });
+              : stage === 2
+                ? findNearestStage2Interactable(p.x, p.z, {
+                    collectedPickups: propsRef.current.collectedPickups,
+                    collectedArtifacts: propsRef.current.collectedArtifacts,
+                    completedDeliveries: propsRef.current.completedDeliveries,
+                    placedBuildings: propsRef.current.placedBuildings,
+                    vehicles: vehiclesRef.current,
+                  })
+                : findNearestStage1Interactable(p.x, p.z, {
+                    collectedPickups: propsRef.current.collectedPickups,
+                    collectedArtifacts: propsRef.current.collectedArtifacts,
+                    completedDeliveries: propsRef.current.completedDeliveries,
+                    placedBuildings: propsRef.current.placedBuildings,
+                    vehicles: vehiclesRef.current,
+                  });
 
           if (getInteractableKey(nearTargetRef.current) !== getInteractableKey(nextNear)) {
             nearTargetRef.current = nextNear;
@@ -1541,7 +1643,9 @@ export const World3DCanvas: React.FC<World3DCanvasProps> = ({
       data-player-z={(startPos.z ?? 0).toFixed(2)}
       data-grounded="true"
       data-cam-yaw="1.57"
-      data-district={activeStage === 2 ? 's2-transportasi' : 'pusat-kota'}
+      data-district={
+        activeStage === 3 ? 's3-smart-center' : activeStage === 2 ? 's2-transportasi' : 'pusat-kota'
+      }
       data-entered-interior=""
       data-boarded-ship=""
       data-riding-vehicle=""

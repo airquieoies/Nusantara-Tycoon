@@ -42,9 +42,9 @@ export const PanduanModal: React.FC<PanduanModalProps> = ({ open, onClose }) => 
               Tujuan Utama Wali Kota Nusantara
             </h3>
             <p className="text-sm leading-relaxed text-slate-300">
-              Kembangkan Kota Nusantara melalui tiga era sejarah: <strong className="text-white">Stage 1 (Kota Perdagangan)</strong>,{' '}
-              <strong className="text-white">Stage 2 (Kota Industri Global)</strong>, dan{' '}
-              <strong className="text-white">Stage 3 (Kota Digital Tanpa Batas)</strong>.
+              Kembangkan Kota Nusantara melalui tiga era sejarah: <strong className="text-white">Stage 1 (Kota Nusantara)</strong>,{' '}
+              <strong className="text-white">Stage 2 (Kota Industri)</strong>, dan{' '}
+              <strong className="text-white">Stage 3 (Kota Digital Masa Depan)</strong>.
               Seimbangkan tiga pilar kota: <strong className="text-sky-300">Ekonomi Global</strong>,{' '}
               <strong className="text-cyan-300">IPTEK</strong>, dan{' '}
               <strong className="text-emerald-300">Kearifan Lokal</strong> sambil menjaga{' '}
@@ -134,14 +134,14 @@ export const PanduanModal: React.FC<PanduanModalProps> = ({ open, onClose }) => 
             </div>
             <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950/60">
               <img
-                src="/assets/aistudio/Tambahkan_judul_c31d145c.png"
-                alt="Referensi Tata Kota Isometrik Nusantara"
+                src="/assets/stages/stage1-kota-nusantara.png"
+                alt="Dunia 3D Stage 1 Kota Nusantara"
                 referrerPolicy="no-referrer"
                 className="h-44 w-full object-cover"
               />
               <div className="p-3">
                 <p className="text-xs font-medium text-slate-200">
-                  Referensi Desain Tata Kota Isometrik Mode Bermain
+                  Cuplikan Dunia 3D Stage 1: Kota Nusantara (Mode Bermain)
                 </p>
               </div>
             </div>

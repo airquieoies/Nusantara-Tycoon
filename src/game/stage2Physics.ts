@@ -329,7 +329,7 @@ export function getStage2Landmarks(): StageLandmarkDef[] {
     },
     {
       id: 'lm-s2-stage3-terminal',
-      label: 'Terminal Kereta Cepat Masa Depan (Stage 3 Terkunci)',
+      label: 'Terminal Kereta Cepat Nusantara (Stage 3)',
       kind: 'portal',
       x: -4.0,
       z: -74.0,
@@ -338,9 +338,9 @@ export function getStage2Landmarks(): StageLandmarkDef[] {
       height: 6.5,
       yaw: 0,
       description:
-        'Proyek stasiun kaca futuristik untuk Kota Digital Tanpa Batas (Stage 3). Saat ini masih dalam tahap perancangan dan TERKUNCI.',
+        'Stasiun kaca futuristik Kereta Cepat Nusantara yang menghubungkan Kota Industri (Stage 2) langsung menuju Kota Digital Masa Depan (Stage 3).',
       sociologyNote:
-        'Stage 3 akan menghadirkan jaringan smart city, otomatisasi digital, dan glokalisasi modern pada pembaruan berikutnya.',
+        'Stage 3 menghadirkan jaringan smart city, otomatisasi digital, dan glokalisasi modern tanpa meninggalkan jati diri Nusantara.',
     },
   ];
 }

@@ -18,8 +18,19 @@ import {
   STAGE2_SHORELINE_X,
 } from '../../game/stage2Physics';
 
+import { STAGE3_DISTRICTS } from '../../game/stage3Data';
+import {
+  STAGE3_MAX_X,
+  STAGE3_MAX_Z,
+  STAGE3_MIN_X,
+  STAGE3_MIN_Z,
+  STAGE3_MONORAIL_X,
+  STAGE3_SHORELINE_X,
+} from '../../game/stage3Physics';
+import { StageNumber } from '../../game/types';
+
 interface MinimapWidgetProps {
-  activeStage?: 1 | 2;
+  activeStage?: StageNumber;
   playerX: number;
   playerZ: number;
   facingYaw: number;
@@ -39,12 +50,14 @@ export const MinimapWidget: React.FC<MinimapWidgetProps> = ({
   questTarget,
   onOpenWorldMap,
 }) => {
-  const minX = activeStage === 2 ? STAGE2_MIN_X : STAGE1_MIN_X;
-  const maxX = activeStage === 2 ? STAGE2_MAX_X : STAGE1_MAX_X;
-  const minZ = activeStage === 2 ? STAGE2_MIN_Z : STAGE1_MIN_Z;
-  const maxZ = activeStage === 2 ? STAGE2_MAX_Z : STAGE1_MAX_Z;
-  const shoreVal = activeStage === 2 ? STAGE2_SHORELINE_X : STAGE1_SHORELINE_X;
-  const districts = activeStage === 2 ? STAGE2_DISTRICTS : STAGE1_DISTRICTS;
+  const minX = activeStage === 3 ? STAGE3_MIN_X : activeStage === 2 ? STAGE2_MIN_X : STAGE1_MIN_X;
+  const maxX = activeStage === 3 ? STAGE3_MAX_X : activeStage === 2 ? STAGE2_MAX_X : STAGE1_MAX_X;
+  const minZ = activeStage === 3 ? STAGE3_MIN_Z : activeStage === 2 ? STAGE2_MIN_Z : STAGE1_MIN_Z;
+  const maxZ = activeStage === 3 ? STAGE3_MAX_Z : activeStage === 2 ? STAGE2_MAX_Z : STAGE1_MAX_Z;
+  const shoreVal =
+    activeStage === 3 ? STAGE3_SHORELINE_X : activeStage === 2 ? STAGE2_SHORELINE_X : STAGE1_SHORELINE_X;
+  const districts =
+    activeStage === 3 ? STAGE3_DISTRICTS : activeStage === 2 ? STAGE2_DISTRICTS : STAGE1_DISTRICTS;
 
   const toSvgX = (wx: number) => ((wx - minX) / (maxX - minX)) * W;
   const toSvgY = (wz: number) => ((wz - minZ) / (maxZ - minZ)) * H;
@@ -64,11 +77,17 @@ export const MinimapWidget: React.FC<MinimapWidgetProps> = ({
       >
         <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="block">
           {/* Land */}
-          <rect x={0} y={0} width={shoreX} height={H} fill={activeStage === 2 ? '#1e293b' : '#253b28'} />
+          <rect
+            x={0}
+            y={0}
+            width={shoreX}
+            height={H}
+            fill={activeStage === 3 ? '#0f172a' : activeStage === 2 ? '#1e293b' : '#253b28'}
+          />
           {/* Ocean */}
           <rect x={shoreX} y={0} width={W - shoreX} height={H} fill="#0c4a6e" />
 
-          {/* River */}
+          {/* River (Stage 1 & 2) */}
           {activeStage === 1 ? (
             <>
               <rect
@@ -86,7 +105,7 @@ export const MinimapWidget: React.FC<MinimapWidgetProps> = ({
                 fill="#0284c7"
               />
             </>
-          ) : (
+          ) : activeStage === 2 ? (
             <>
               <rect
                 x={toSvgX(-61.5)}
@@ -103,6 +122,15 @@ export const MinimapWidget: React.FC<MinimapWidgetProps> = ({
                 fill="#0284c7"
               />
             </>
+          ) : (
+            <rect
+              x={shoreX}
+              y={toSvgY(50)}
+              width={Math.max(4, toSvgX(104) - shoreX)}
+              height={Math.max(4, toSvgY(62) - toSvgY(50))}
+              fill="#38bdf8"
+              fillOpacity={0.45}
+            />
           )}
 
           {/* District Rects */}
@@ -132,7 +160,28 @@ export const MinimapWidget: React.FC<MinimapWidgetProps> = ({
           <line x1={toSvgX(-80)} y1={toSvgY(0)} x2={shoreX} y2={toSvgY(0)} stroke="#cbd5e1" strokeOpacity={0.45} strokeWidth={1.6} />
           <line x1={toSvgX(0)} y1={toSvgY(-76)} x2={toSvgX(0)} y2={toSvgY(78)} stroke="#cbd5e1" strokeOpacity={0.45} strokeWidth={1.6} />
 
-          {activeStage === 2 ? (
+          {activeStage === 3 ? (
+            <>
+              <line
+                x1={toSvgX(STAGE3_MONORAIL_X)}
+                y1={0}
+                x2={toSvgX(STAGE3_MONORAIL_X)}
+                y2={H}
+                stroke="#22d3ee"
+                strokeDasharray="3 2"
+                strokeWidth={1.3}
+              />
+              <line
+                x1={toSvgX(-42)}
+                y1={toSvgY(-13)}
+                x2={toSvgX(42)}
+                y2={toSvgY(-13)}
+                stroke="#38bdf8"
+                strokeOpacity={0.7}
+                strokeWidth={1.5}
+              />
+            </>
+          ) : activeStage === 2 ? (
             <line
               x1={toSvgX(STAGE2_RAIL_X)}
               y1={0}

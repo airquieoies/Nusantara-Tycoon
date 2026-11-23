@@ -3,12 +3,12 @@ import { BuildingDefinition, StageChallenge, StageConfig, StageNumber } from '..
 export const STAGE_CONFIGS: Record<StageNumber, StageConfig> = {
   1: {
     stage: 1,
-    name: 'Kota Perdagangan',
-    eraLabel: 'Stage 1 · Fase Perdagangan Kuno',
+    name: 'Kota Nusantara',
+    eraLabel: 'Stage 1 · Kota Nusantara',
     subtitle: 'Bangun simpul perdagangan rempah Nusantara dan jalur niaga maritim yang berbudaya.',
     themeBgClass: 'from-amber-950 via-stone-900 to-emerald-950',
     accentColor: '#D97706',
-    referenceImage: '/assets/aistudio/Tambahkan_judul__1__5ad5298b.png',
+    referenceImage: '/assets/stages/stage1-kota-nusantara.png',
     timeLimitSeconds: 180,
     missions: [
       'Bangun Pasar Tradisional & Pelabuhan Nusantara untuk membuka jalur niaga maritim.',
@@ -20,20 +20,20 @@ export const STAGE_CONFIGS: Record<StageNumber, StageConfig> = {
     targetScoreForStage: 30,
     introSpeaker: 'aditya',
     introMessage:
-      'Selamat datang di Stage 1! Mari bangun Pelabuhan dan Pasar Tradisional untuk menghubungkan Nusantara dengan Jalur Sutra & Jalur Rempah dunia!',
+      'Selamat datang di Stage 1: Kota Nusantara! Mari bangun Pelabuhan dan Pasar Tradisional untuk menghubungkan Nusantara dengan Jalur Sutra & Jalur Rempah dunia!',
   },
   2: {
     stage: 2,
-    name: 'Kota Industri Global',
-    eraLabel: 'Stage 2 · Revolusi Industri & Mekanisasi',
+    name: 'Kota Industri',
+    eraLabel: 'Stage 2 · Kota Industri',
     subtitle: 'Tingkatkan kapasitas produksi dan logistik tanpa mengorbankan pekerja dan lingkungan.',
     themeBgClass: 'from-stone-900 via-slate-900 to-amber-950',
     accentColor: '#EA580C',
-    referenceImage: '/assets/aistudio/Tambahkan_judul__2__81566d0d.png',
+    referenceImage: '/assets/stages/stage2-kota-industri.png',
     timeLimitSeconds: 210,
     missions: [
       'Bangun Kawasan Industri/Pabrik serta fasilitas Pendidikan/Kesehatan penyeimbang.',
-      'Capai total minimal 8 bangunan aktif di peta kota Nusantara.',
+      'Capai total minimal 8 bangunan aktif di peta Kota Industri.',
       'Selesaikan studi kasus ketimpangan ekonomi, hak pekerja, dan pencemaran industri.',
     ],
     requiredBuildingsCount: 8,
@@ -41,16 +41,16 @@ export const STAGE_CONFIGS: Record<StageNumber, StageConfig> = {
     targetScoreForStage: 55,
     introSpeaker: 'laras',
     introMessage:
-      'Kita memasuki Era Industri! Pabrik dan mesin mempercepat ekonomi, tetapi jangan sampai kesenjangan sosial dan polusi menurunkan HP Kota!',
+      'Kita memasuki Stage 2: Kota Industri! Pabrik dan mesin mempercepat ekonomi, tetapi jangan sampai kesenjangan sosial dan polusi menurunkan HP Kota!',
   },
   3: {
     stage: 3,
-    name: 'Kota Digital Tanpa Batas',
-    eraLabel: 'Stage 3 · Informasi & Digital Modern',
+    name: 'Kota Digital Masa Depan',
+    eraLabel: 'Stage 3 · Kota Digital Masa Depan',
     subtitle: 'Wujudkan smart city hijau berdaya saing global yang berakar pada glokalisasi Nusantara.',
     themeBgClass: 'from-slate-950 via-sky-950 to-emerald-950',
     accentColor: '#0284C7',
-    referenceImage: '/assets/aistudio/Tambahkan_judul__3__9ee52f2a.png',
+    referenceImage: '/assets/stages/stage3-kota-digital.png',
     timeLimitSeconds: 240,
     missions: [
       'Bangun Gedung Smart City/Pusat Teknologi dan fasilitas Budaya/Hutan Kota.',
@@ -62,7 +62,7 @@ export const STAGE_CONFIGS: Record<StageNumber, StageConfig> = {
     targetScoreForStage: 70,
     introSpeaker: 'naya',
     introMessage:
-      'Inilah puncak transformasi Kota Nusantara! Mari padukan Smart City, riset IPTEK, energi bersih, dan produk UMKM agar mendunia lewat glokalisasi!',
+      'Inilah puncak transformasi menuju Kota Digital Masa Depan! Mari padukan Smart City, riset IPTEK, energi bersih, dan produk UMKM agar mendunia lewat glokalisasi!',
   },
 };
 

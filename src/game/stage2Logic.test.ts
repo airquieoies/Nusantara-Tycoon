@@ -267,7 +267,7 @@ test('Full Stage 2 main quest chain (1 through 8) completes and awards Arsitek I
   assert.equal(s.stage2.achievements.includes('s2-ach-hero'), true);
 });
 
-test('Stage 3 remains strictly locked and cross-stage travel preserves Stage 1 & global cosmetics', () => {
+test('Stage 3 is unlocked via Kereta Cepat and cross-stage travel preserves Stage 1, Stage 2 & global cosmetics', () => {
   let s = createInitialMultiStageState();
   // Customize avatar via preset in Stage 1
   s = applyCharacterPreset(s, 'preset-pelaut');
@@ -277,10 +277,7 @@ test('Stage 3 remains strictly locked and cross-stage travel preserves Stage 1 &
     stage1: { ...s.stage1, collectibles: ['col-batik-pesisir'] },
   };
 
-  // Attempt to travel to Stage 3 -> must be rejected and remain on Stage 1
-  const blocked = travelBetweenStages(s, 3);
-  assert.equal(blocked.activeStage, 1);
-  assert.equal(blocked.unlockedStages.includes(3 as never), false);
+  assert.deepEqual(s.unlockedStages, [1, 2, 3]);
 
   // Travel to Stage 2 -> shared coins & appearance preserved
   s = travelBetweenStages(s, 2);
@@ -292,17 +289,20 @@ test('Stage 3 remains strictly locked and cross-stage travel preserves Stage 1 &
   // Stage 3 buildings cannot be placed in Stage 2
   const stage3Placement = validateStage2BuildingPlacement('kawasan-internasional', 16, -16, [], 0, 0);
   assert.equal(stage3Placement.valid, false);
-  assert.match(stage3Placement.reason, /Terkunci/i);
+  assert.match(stage3Placement.reason, /Terkunci|Stage 3/i);
 
-  // Locked Stage 3 terminal emits locked_stage3 interactable
-  const nearLockedTerminal = findNearestStage2Interactable(-4, -74, {
+  // Stage 3 terminal in Stage 2 emits stage_transition -> targetStage 3
+  const nearTerminal = findNearestStage2Interactable(-4, -74, {
     collectedPickups: [],
     collectedArtifacts: ['s2-col-maket-rel-cepat'],
     completedDeliveries: [],
     placedBuildings: [],
     vehicles: [],
   });
-  assert.equal(nearLockedTerminal?.kind, 'locked_stage3');
+  assert.equal(nearTerminal?.kind, 'stage_transition');
+  if (nearTerminal?.kind === 'stage_transition') {
+    assert.equal(nearTerminal.targetStage, 3);
+  }
 
   // Collect all 15 Stage 2 artifacts without dropping Stage 1 artifacts
   for (const col of STAGE2_COLLECTIBLES) {
@@ -311,9 +311,19 @@ test('Stage 3 remains strictly locked and cross-stage travel preserves Stage 1 &
   assert.equal(s.stage2.collectibles.length, 15);
   assert.equal(s.stage1.collectibles.length, 1);
 
-  // Travel back to Stage 1 -> Stage 2 progress & Stage 1 progress both remain intact
+  // Travel directly to Stage 3 -> Stage 1 & Stage 2 progress and shared wallet/cosmetics stay intact
+  const beforeStage3Coins = s.stage1.coins;
+  s = travelBetweenStages(s, 3);
+  assert.equal(s.activeStage, 3);
+  assert.ok(s.stage1.coins >= beforeStage3Coins);
+  assert.equal(s.stage1.appearance.shirtId, 'shirt-tenun-biru');
+  assert.equal(s.stage2.collectibles.length, 15);
+
+  // Travel back to Stage 1 -> Stage 2 & Stage 3 progress remain intact
+  const savedCoinsWithStage3 = s.stage1.coins;
   s = travelBetweenStages(s, 1);
   assert.equal(s.activeStage, 1);
+  assert.equal(s.stage1.coins, savedCoinsWithStage3);
   assert.equal(s.stage2.collectibles.length, 15);
 });
 
@@ -337,5 +347,5 @@ test('mergeOfflineAndOnlineState never loses higher XP, quests, titles, or colle
   assert.equal(merged.stage1.coins, 1950);
   assert.equal(merged.stage1.unlockedTitles.includes('title-perintis-industri'), true);
   assert.equal(merged.stage2.collectibles.includes('s2-col-roda-gigi'), true);
-  assert.deepEqual(merged.unlockedStages, [1, 2]);
+  assert.deepEqual(merged.unlockedStages, [1, 2, 3]);
 });

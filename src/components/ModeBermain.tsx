@@ -3,18 +3,19 @@ import {
   Activity,
   ArrowLeft,
   ArrowUpCircle,
+  ArrowUpDown,
   Backpack,
   Building2,
   CheckCircle2,
   Coins,
   Compass,
+  Cpu,
   Eye,
   EyeOff,
   Factory,
   Hammer,
   Heart,
   LayoutGrid,
-  Lock,
   MapPin,
   MessageCircle,
   Navigation,
@@ -25,12 +26,14 @@ import {
   Ship,
   ShoppingCart,
   Sparkles,
+  TrainFront,
   Trophy,
   UserCheck,
   Users,
   Volume2,
   VolumeX,
   X,
+  Zap,
 } from 'lucide-react';
 import { audioEngine } from '../game/audio';
 import { BUILDING_CATALOG, STAGE_CHALLENGES } from '../game/data/bermainData';
@@ -46,48 +49,63 @@ import {
   acceptActiveStageQuest,
   applyCharacterPreset,
   buyStage2Supply,
+  buyStage3Supply,
   calculateMultiStageIncome,
   collectNusantaraArtifact,
   collectStage2Artifact,
   collectStage2Pickup,
   collectStage2Production,
+  collectStage3Artifact,
+  collectStage3Pickup,
   collectWorldPickup,
   deliverOrSellStage2,
+  deliverOrSellStage3,
   deliverToSpot,
   discoverDistrict,
   discoverStage2District,
+  discoverStage3District,
   dismissMultiStageCelebration,
   equipMultiStageTitle,
   evaluateAchievements,
   getActiveQuestSummary,
   getIndustrialBalanceLevel,
   getItemDefById,
+  getSmartCityBalanceLevel,
   loadMultiStageFromStorage,
   MultiStageWorldState,
+  performStage3Activity,
   PlacedBuildingInstance,
   PLAYER_TITLES,
+  recalculateSmartCityMetrics,
   recordInteriorEntered,
   recordShipBoarded,
   recordStage2InteriorEntered,
   recordStage2LandmarkInspected,
   recordStage2ShipBoarded,
   recordStage2VehicleDriven,
+  recordStage3InteriorEntered,
+  recordStage3LandmarkInspected,
+  recordStage3VehicleDriven,
   recordVehicleDriven,
   resetMultiStageStorage,
   saveMultiStageToStorage,
   startBuildingConstruction,
   startStage2BuildingConstruction,
   startStage2Production,
+  startStage3BuildingConstruction,
   tickMultiStageWorld,
   tickStage2Production,
   trackActiveStageQuest,
   travelBetweenStages,
   triggerQuestEvent,
   triggerStage2QuestEvent,
+  triggerStage3QuestEvent,
   updateGlobalAppearance,
   upgradePlacedBuilding,
   upgradeStage2PlacedBuilding,
+  upgradeStage3PlacedBuilding,
   useMultiStageInventoryItem,
+  useStage3Elevator,
 } from '../game/multiStageLogic';
 import { addXpAndCoins } from '../game/stage1WorldLogic';
 import { clamp } from '../game/rules';
@@ -112,6 +130,15 @@ import {
   STAGE2_VEHICLES,
   Stage2DistrictId,
 } from '../game/stage2Data';
+import {
+  findStage3DistrictAt,
+  STAGE3_ACTIVITY_STATIONS,
+  STAGE3_COLLECTIBLES,
+  STAGE3_ENTERABLE_BUILDINGS,
+  STAGE3_QUESTS,
+  STAGE3_VEHICLES,
+  Stage3DistrictId,
+} from '../game/stage3Data';
 import { FacialExpression } from '../game/threeCharacterRig';
 import { ChallengeOption, StageChallenge, StageNumber } from '../game/types';
 import { NpcWaypoint, StageLandmarkDef } from '../game/world3dPhysics';
@@ -127,6 +154,7 @@ interface ModeBermainProps {
   onUpdateRecord: (stageReached: StageNumber, score: number) => void;
   muted: boolean;
   onToggleMute: () => void;
+  initialStage?: StageNumber | null;
 }
 
 function buildRemotePlayerPayload(
@@ -142,7 +170,12 @@ function buildRemotePlayerPayload(
     grounded: boolean;
   }
 ): Omit<RemotePlayerSnapshot, 'id'> {
-  const pos = state.activeStage === 2 ? state.stage2.playerPos : state.stage1.playerPos;
+  const pos =
+    state.activeStage === 3
+      ? state.stage3.playerPos
+      : state.activeStage === 2
+        ? state.stage2.playerPos
+        : state.stage1.playerPos;
   return {
     name: state.displayName || 'Wali Kota Muda',
     titleId: state.stage1.equippedTitle,
@@ -164,8 +197,15 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
   onUpdateRecord,
   muted,
   onToggleMute,
+  initialStage = null,
 }) => {
-  const [worldState, setWorldState] = useState<MultiStageWorldState>(() => loadMultiStageFromStorage());
+  const [worldState, setWorldState] = useState<MultiStageWorldState>(() => {
+    const loaded = loadMultiStageFromStorage();
+    if (initialStage && initialStage !== loaded.activeStage) {
+      return travelBetweenStages(loaded, initialStage);
+    }
+    return loaded;
+  });
   const [paused, setPaused] = useState<boolean>(false);
   const [hudHidden, setHudHidden] = useState<boolean>(false);
   const [pointerLockRequestId] = useState<number>(0);
@@ -190,9 +230,11 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
   // Live 3D Proximity & World Context
   const [nearTarget, setNearTarget] = useState<WorldInteractable | null>(null);
   const [currentDistrict, setCurrentDistrict] = useState<string>(() =>
-    worldState.activeStage === 2
-      ? findStage2DistrictAt(worldState.stage2.playerPos.x, worldState.stage2.playerPos.z).id
-      : findDistrictAt(worldState.stage1.playerPos.x, worldState.stage1.playerPos.z).id
+    worldState.activeStage === 3
+      ? findStage3DistrictAt(worldState.stage3.playerPos.x, worldState.stage3.playerPos.z).id
+      : worldState.activeStage === 2
+        ? findStage2DistrictAt(worldState.stage2.playerPos.x, worldState.stage2.playerPos.z).id
+        : findDistrictAt(worldState.stage1.playerPos.x, worldState.stage1.playerPos.z).id
   );
   const [insideBuildingId, setInsideBuildingId] = useState<string | null>(null);
   const [boardedShipId, setBoardedShipId] = useState<string | null>(null);
@@ -206,8 +248,8 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
   const [activeChallenge, setActiveChallenge] = useState<StageChallenge | null>(null);
   const [challengeResult, setChallengeResult] = useState<{ option: ChallengeOption } | null>(null);
   const [activeFactoryStationId, setActiveFactoryStationId] = useState<string | null>(null);
-  const [voyageTargetStage, setVoyageTargetStage] = useState<1 | 2 | null>(null);
-  const [stage3PreviewOpen, setStage3PreviewOpen] = useState<boolean>(false);
+  const [activeActivityStationId, setActiveActivityStationId] = useState<string | null>(null);
+  const [voyageTargetStage, setVoyageTargetStage] = useState<StageNumber | null>(null);
   const [bgmActive, setBgmActive] = useState<boolean>(audioEngine.isBgmEnabled());
   const [previewExpression, setPreviewExpression] = useState<FacialExpression>('neutral');
 
@@ -232,16 +274,42 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
   } | null>(null);
 
   const isStage2 = worldState.activeStage === 2;
+  const isStage3 = worldState.activeStage === 3;
   const s1 = worldState.stage1;
   const s2 = worldState.stage2;
-  const activePos = isStage2 ? s2.playerPos : s1.playerPos;
-  const activeDiscovered = isStage2 ? s2.discoveredDistricts : s1.discoveredDistricts;
-  const activePickups = isStage2 ? s2.collectedPickups : s1.collectedPickups;
-  const activeCollectibles = isStage2 ? s2.collectibles : s1.collectibles;
-  const activeDeliveries = isStage2 ? s2.completedDeliveries : s1.completedDeliveries;
-  const activeBuildings = isStage2 ? s2.placedBuildings : s1.placedBuildings;
-  const activeScore = isStage2 ? s2.score : s1.score;
-  const collectibleTotal = isStage2 ? STAGE2_COLLECTIBLES.length : STAGE1_COLLECTIBLES.length;
+  const s3 = worldState.stage3;
+  const activePos = isStage3 ? s3.playerPos : isStage2 ? s2.playerPos : s1.playerPos;
+  const activeDiscovered = isStage3
+    ? s3.discoveredDistricts
+    : isStage2
+      ? s2.discoveredDistricts
+      : s1.discoveredDistricts;
+  const activePickups = isStage3
+    ? s3.collectedPickups
+    : isStage2
+      ? s2.collectedPickups
+      : s1.collectedPickups;
+  const activeCollectibles = isStage3
+    ? s3.collectibles
+    : isStage2
+      ? s2.collectibles
+      : s1.collectibles;
+  const activeDeliveries = isStage3
+    ? s3.completedDeliveries
+    : isStage2
+      ? s2.completedDeliveries
+      : s1.completedDeliveries;
+  const activeBuildings = isStage3
+    ? s3.placedBuildings
+    : isStage2
+      ? s2.placedBuildings
+      : s1.placedBuildings;
+  const activeScore = isStage3 ? s3.score : isStage2 ? s2.score : s1.score;
+  const collectibleTotal = isStage3
+    ? STAGE3_COLLECTIBLES.length
+    : isStage2
+      ? STAGE2_COLLECTIBLES.length
+      : STAGE1_COLLECTIBLES.length;
 
   const activeChallenges = useMemo(
     () => STAGE_CHALLENGES.filter((c) => c.stage === worldState.activeStage),
@@ -257,6 +325,10 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
     () => getIndustrialBalanceLevel(s2.industrialMetrics),
     [s2.industrialMetrics]
   );
+  const smartCityBalance = useMemo(
+    () => getSmartCityBalanceLevel(s3.smartCityMetrics),
+    [s3.smartCityMetrics]
+  );
 
   const activeBuildingInspect: PlacedBuildingInstance | null = useMemo(
     () => activeBuildings.find((b) => b.id === activeBuildingInspectId) ?? null,
@@ -268,6 +340,7 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
     return (
       STAGE1_VEHICLES.find((v) => v.id === ridingVehicleId) ??
       STAGE2_VEHICLES.find((v) => v.id === ridingVehicleId) ??
+      STAGE3_VEHICLES.find((v) => v.id === ridingVehicleId) ??
       null
     );
   }, [ridingVehicleId]);
@@ -277,11 +350,16 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
     [activeFactoryStationId]
   );
 
+  const activeActivityStation = useMemo(
+    () => STAGE3_ACTIVITY_STATIONS.find((s) => s.id === activeActivityStationId) ?? null,
+    [activeActivityStationId]
+  );
+
   // Persist multi-stage state to localStorage + report record to App
   useEffect(() => {
     saveMultiStageToStorage(worldState);
-    onUpdateRecord(worldState.activeStage, Math.max(s1.score, s2.score));
-  }, [worldState, s1.score, s2.score, onUpdateRecord]);
+    onUpdateRecord(worldState.activeStage, Math.max(s1.score, s2.score, s3.score));
+  }, [worldState, s1.score, s2.score, s3.score, onUpdateRecord]);
 
   // Multiplayer subscription & auto-join via ?room=CODE
   useEffect(() => {
@@ -354,8 +432,8 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
       activeLandmark !== null ||
       activeBuildingInspectId !== null ||
       activeChallenge !== null ||
+      activeActivityStationId !== null ||
       voyageTargetStage !== null ||
-      stage3PreviewOpen ||
       s1.lastRewardCelebration !== null;
 
     if (hasWorldBlockingModal) return;
@@ -383,7 +461,7 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
           };
         }
 
-        // Passive city tax / industrial trade income every 6 seconds (12 ticks of 0.5s)
+        // Passive city tax / industrial / smart city income every 6 seconds (12 ticks of 0.5s)
         if (!activeFactoryStationId && tickCount % 12 === 0) {
           const gain = calculateMultiStageIncome(next);
           next = {
@@ -409,8 +487,8 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
     activeBuildingInspectId,
     activeChallenge,
     activeFactoryStationId,
+    activeActivityStationId,
     voyageTargetStage,
-    stage3PreviewOpen,
     s1.lastRewardCelebration,
   ]);
 
@@ -431,8 +509,8 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
         setActiveFactoryStationId(null);
         return;
       }
-      if (stage3PreviewOpen) {
-        setStage3PreviewOpen(false);
+      if (activeActivityStationId) {
+        setActiveActivityStationId(null);
         return;
       }
       if (voyageTargetStage) {
@@ -476,7 +554,7 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
     s1.lastRewardCelebration,
     activeChallenge,
     activeFactoryStationId,
-    stage3PreviewOpen,
+    activeActivityStationId,
     voyageTargetStage,
     activeNpcModal,
     activeLandmark,
@@ -490,9 +568,11 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
   const handleDistrictChange = useCallback((dId: string) => {
     setCurrentDistrict(dId);
     setWorldState((prev) =>
-      prev.activeStage === 2
-        ? discoverStage2District(prev, dId as Stage2DistrictId)
-        : { ...prev, stage1: discoverDistrict(prev.stage1, dId as DistrictId) }
+      prev.activeStage === 3
+        ? discoverStage3District(prev, dId as Stage3DistrictId)
+        : prev.activeStage === 2
+          ? discoverStage2District(prev, dId as Stage2DistrictId)
+          : { ...prev, stage1: discoverDistrict(prev.stage1, dId as DistrictId) }
     );
   }, []);
 
@@ -500,9 +580,11 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
     setInsideBuildingId(interiorId);
     if (interiorId) {
       setWorldState((prev) =>
-        prev.activeStage === 2
-          ? recordStage2InteriorEntered(prev, interiorId)
-          : { ...prev, stage1: recordInteriorEntered(prev.stage1, interiorId) }
+        prev.activeStage === 3
+          ? recordStage3InteriorEntered(prev, interiorId)
+          : prev.activeStage === 2
+            ? recordStage2InteriorEntered(prev, interiorId)
+            : { ...prev, stage1: recordInteriorEntered(prev.stage1, interiorId) }
       );
     }
   }, []);
@@ -521,9 +603,11 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
     if (vehicleId) {
       audioEngine.playClick();
       setWorldState((prev) =>
-        prev.activeStage === 2
-          ? recordStage2VehicleDriven(prev, vehicleId)
-          : { ...prev, stage1: recordVehicleDriven(prev.stage1, vehicleId) }
+        prev.activeStage === 3
+          ? recordStage3VehicleDriven(prev, vehicleId)
+          : prev.activeStage === 2
+            ? recordStage2VehicleDriven(prev, vehicleId)
+            : { ...prev, stage1: recordVehicleDriven(prev.stage1, vehicleId) }
       );
     }
   }, []);
@@ -532,14 +616,24 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
   const handlePlayerPositionSync = useCallback(
     (pos: { x: number; y: number; z: number; facingYaw: number }) => {
       setWorldState((prev) =>
-        prev.activeStage === 2
-          ? { ...prev, stage2: { ...prev.stage2, playerPos: pos } }
-          : { ...prev, stage1: { ...prev.stage1, playerPos: pos } }
+        prev.activeStage === 3
+          ? { ...prev, stage3: { ...prev.stage3, playerPos: pos } }
+          : prev.activeStage === 2
+            ? { ...prev, stage2: { ...prev.stage2, playerPos: pos } }
+            : { ...prev, stage1: { ...prev.stage1, playerPos: pos } }
       );
-      const list = worldState.activeStage === 2 ? STAGE2_ENTERABLE_BUILDINGS : STAGE1_ENTERABLE_BUILDINGS;
-      const inside = list.find(
-        (b) => Math.abs(pos.x - b.x) <= b.halfW - 0.25 && Math.abs(pos.z - b.z) <= b.halfD - 0.25
-      );
+      const list =
+        worldState.activeStage === 3
+          ? STAGE3_ENTERABLE_BUILDINGS
+          : worldState.activeStage === 2
+            ? STAGE2_ENTERABLE_BUILDINGS
+            : STAGE1_ENTERABLE_BUILDINGS;
+      const inside =
+        pos.y < 4.5
+          ? list.find(
+              (b) => Math.abs(pos.x - b.x) <= b.halfW - 0.25 && Math.abs(pos.z - b.z) <= b.halfD - 0.25
+            )
+          : undefined;
       setInsideBuildingId(inside?.id ?? null);
       if (pos.y < 1.5) {
         setBoardedShipId(null);
@@ -582,19 +676,33 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
       return;
     }
 
+    if (target.kind === 'activity_station') {
+      audioEngine.playClick();
+      setActiveActivityStationId(target.station.id);
+      return;
+    }
+
+    if (target.kind === 'elevator_pad') {
+      audioEngine.playClick();
+      setWorldState((prev) => useStage3Elevator(prev, target.pad.id));
+      return;
+    }
+
     if (target.kind === 'locked_stage3') {
       audioEngine.playClick();
       setWorldState((prev) => recordStage2LandmarkInspected(prev, target.landmark.id));
-      setStage3PreviewOpen(true);
+      setVoyageTargetStage(3);
       return;
     }
 
     if (target.kind === 'pickup') {
       audioEngine.playCorrect();
       setWorldState((prev) =>
-        prev.activeStage === 2
-          ? collectStage2Pickup(prev, target.pickup.id)
-          : { ...prev, stage1: collectWorldPickup(prev.stage1, target.pickup.id) }
+        prev.activeStage === 3
+          ? collectStage3Pickup(prev, target.pickup.id)
+          : prev.activeStage === 2
+            ? collectStage2Pickup(prev, target.pickup.id)
+            : { ...prev, stage1: collectWorldPickup(prev.stage1, target.pickup.id) }
       );
       return;
     }
@@ -602,9 +710,11 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
     if (target.kind === 'collectible') {
       audioEngine.playLevelUp();
       setWorldState((prev) =>
-        prev.activeStage === 2
-          ? collectStage2Artifact(prev, target.collectible.id)
-          : { ...prev, stage1: collectNusantaraArtifact(prev.stage1, target.collectible.id) }
+        prev.activeStage === 3
+          ? collectStage3Artifact(prev, target.collectible.id)
+          : prev.activeStage === 2
+            ? collectStage2Artifact(prev, target.collectible.id)
+            : { ...prev, stage1: collectNusantaraArtifact(prev.stage1, target.collectible.id) }
       );
       return;
     }
@@ -612,9 +722,11 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
     if (target.kind === 'delivery') {
       audioEngine.playClick();
       setWorldState((prev) =>
-        prev.activeStage === 2
-          ? deliverOrSellStage2(prev, target.delivery.id)
-          : { ...prev, stage1: deliverToSpot(prev.stage1, target.delivery.id) }
+        prev.activeStage === 3
+          ? deliverOrSellStage3(prev, target.delivery.id)
+          : prev.activeStage === 2
+            ? deliverOrSellStage2(prev, target.delivery.id)
+            : { ...prev, stage1: deliverToSpot(prev.stage1, target.delivery.id) }
       );
       return;
     }
@@ -622,9 +734,11 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
     if (target.kind === 'npc') {
       audioEngine.playClick();
       setWorldState((prev) =>
-        prev.activeStage === 2
-          ? triggerStage2QuestEvent(prev, 'talk_npc', target.npc.id)
-          : { ...prev, stage1: triggerQuestEvent(prev.stage1, 'talk_npc', target.npc.id) }
+        prev.activeStage === 3
+          ? triggerStage3QuestEvent(prev, 'talk_npc', target.npc.id)
+          : prev.activeStage === 2
+            ? triggerStage2QuestEvent(prev, 'talk_npc', target.npc.id)
+            : { ...prev, stage1: triggerQuestEvent(prev.stage1, 'talk_npc', target.npc.id) }
       );
       setActiveNpcModal(target.npc);
       return;
@@ -639,9 +753,11 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
     if (target.kind === 'landmark') {
       audioEngine.playClick();
       setWorldState((prev) =>
-        prev.activeStage === 2
-          ? recordStage2LandmarkInspected(prev, target.landmark.id)
-          : { ...prev, stage1: triggerQuestEvent(prev.stage1, 'inspect_landmark', target.landmark.id) }
+        prev.activeStage === 3
+          ? recordStage3LandmarkInspected(prev, target.landmark.id)
+          : prev.activeStage === 2
+            ? recordStage2LandmarkInspected(prev, target.landmark.id)
+            : { ...prev, stage1: triggerQuestEvent(prev.stage1, 'inspect_landmark', target.landmark.id) }
       );
       setActiveLandmark(target.landmark);
       return;
@@ -661,7 +777,7 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
     }
   }, []);
 
-  const confirmStageVoyage = useCallback((targetStage: 1 | 2) => {
+  const confirmStageVoyage = useCallback((targetStage: StageNumber) => {
     audioEngine.unlockOnGesture();
     audioEngine.playLevelUp();
     setVoyageTargetStage(null);
@@ -670,6 +786,7 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
     setBuildBarOpen(false);
     setPlacementBuildingId(null);
     setActiveFactoryStationId(null);
+    setActiveActivityStationId(null);
     setActiveNpcModal(null);
     setActiveLandmark(null);
     setActiveBuildingInspectId(null);
@@ -678,7 +795,9 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
     setBoardedShipId(null);
     setRidingVehicleId(null);
     setMetricsPanelOpen(false);
-    setCurrentDistrict(targetStage === 2 ? 's2-transportasi' : 'pelabuhan');
+    setCurrentDistrict(
+      targetStage === 3 ? 's3-smart-center' : targetStage === 2 ? 's2-transportasi' : 'pelabuhan'
+    );
     setWorldState((prev) => travelBetweenStages(prev, targetStage));
     setResetPosSignal((s) => s + 1);
   }, []);
@@ -692,9 +811,11 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
       setPlacementBuildingId(null);
       setBuildBarOpen(false);
       setWorldState((prev) =>
-        prev.activeStage === 2
-          ? startStage2BuildingConstruction(prev, targetId, x, z, rotY)
-          : { ...prev, stage1: startBuildingConstruction(prev.stage1, targetId, x, z, rotY) }
+        prev.activeStage === 3
+          ? startStage3BuildingConstruction(prev, targetId, x, z, rotY)
+          : prev.activeStage === 2
+            ? startStage2BuildingConstruction(prev, targetId, x, z, rotY)
+            : { ...prev, stage1: startBuildingConstruction(prev.stage1, targetId, x, z, rotY) }
       );
     },
     [placementBuildingId]
@@ -704,9 +825,11 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
     audioEngine.unlockOnGesture();
     setWorldState((prev) => {
       const next =
-        prev.activeStage === 2
-          ? upgradeStage2PlacedBuilding(prev, instanceId)
-          : { ...prev, stage1: upgradePlacedBuilding(prev.stage1, instanceId) };
+        prev.activeStage === 3
+          ? upgradeStage3PlacedBuilding(prev, instanceId)
+          : prev.activeStage === 2
+            ? upgradeStage2PlacedBuilding(prev, instanceId)
+            : { ...prev, stage1: upgradePlacedBuilding(prev.stage1, instanceId) };
       if (next.stage1.lastNotification?.type === 'success') {
         audioEngine.playLevelUp();
       } else {
@@ -738,6 +861,22 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
         },
       };
       nextS1 = addXpAndCoins(nextS1, opt.isCorrect ? 85 : 25, Math.max(0, opt.delta.money));
+
+      if (activeChallenge.stage === 3) {
+        const nextS3 = {
+          ...prev.stage3,
+          score: clamp(prev.stage3.score + opt.delta.score, 0, 600),
+          reputation: clamp(prev.stage3.reputation + (opt.isCorrect ? 7 : -3), 0, 100),
+          happiness: clamp(prev.stage3.happiness + (opt.isCorrect ? 6 : -3), 0, 100),
+          welfare: clamp(prev.stage3.welfare + (opt.isCorrect ? 6 : -4), 0, 100),
+        };
+        nextS3.smartCityMetrics = recalculateSmartCityMetrics(nextS3);
+        return {
+          ...prev,
+          stage1: nextS1,
+          stage3: nextS3,
+        };
+      }
 
       if (activeChallenge.stage === 2) {
         const nextS2 = {
@@ -782,8 +921,8 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
     setMenuOpen(false);
     setWorldMapOpen(false);
     setActiveFactoryStationId(null);
+    setActiveActivityStationId(null);
     setVoyageTargetStage(null);
-    setStage3PreviewOpen(false);
     setPaused(false);
     setCurrentDistrict('pelabuhan');
     setResetPosSignal((s) => s + 1);
@@ -816,8 +955,8 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
     activeBuildingInspectId !== null ||
     activeChallenge !== null ||
     activeFactoryStationId !== null ||
+    activeActivityStationId !== null ||
     voyageTargetStage !== null ||
-    stage3PreviewOpen ||
     s1.lastRewardCelebration !== null;
 
   const playerMood: FacialExpression = activeNpcModal
@@ -827,22 +966,35 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
       : previewExpression;
 
   const currentDistrictDef = useMemo(() => {
+    if (isStage3) {
+      return findStage3DistrictAt(activePos.x, activePos.z);
+    }
     if (isStage2) {
       return findStage2DistrictAt(activePos.x, activePos.z);
     }
     return findDistrictAt(activePos.x, activePos.z);
-  }, [isStage2, activePos.x, activePos.z, currentDistrict]);
+  }, [isStage3, isStage2, activePos.x, activePos.z, currentDistrict]);
 
   const insideBuildingDef = useMemo(() => {
     if (!insideBuildingId) return null;
+    if (isStage3) {
+      return STAGE3_ENTERABLE_BUILDINGS.find((b) => b.id === insideBuildingId) ?? null;
+    }
     if (isStage2) {
       return STAGE2_ENTERABLE_BUILDINGS.find((b) => b.id === insideBuildingId) ?? null;
     }
     return STAGE1_ENTERABLE_BUILDINGS.find((b) => b.id === insideBuildingId) ?? null;
-  }, [insideBuildingId, isStage2]);
+  }, [insideBuildingId, isStage3, isStage2]);
 
   const npcGiverQuest = useMemo(() => {
     if (!activeNpcModal) return null;
+    if (isStage3) {
+      return (
+        STAGE3_QUESTS.find(
+          (q) => q.giverNpcId === activeNpcModal.id && s3.quests[q.id]?.status === 'available'
+        ) ?? null
+      );
+    }
     if (isStage2) {
       return (
         STAGE2_QUESTS.find(
@@ -855,7 +1007,7 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
         (q) => q.giverNpcId === activeNpcModal.id && s1.quests[q.id]?.status === 'available'
       ) ?? null
     );
-  }, [activeNpcModal, isStage2, s1.quests, s2.quests]);
+  }, [activeNpcModal, isStage3, isStage2, s1.quests, s2.quests, s3.quests]);
 
   const npcChallenge = useMemo(() => {
     if (!activeNpcModal?.characterId) return null;
@@ -961,10 +1113,10 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
         </button>
       )}
 
-      {/* Top Compact HUD Bar */}
+      {/* Top Compact HUD Bar & Flowing Sub-HUD (Quest Tracker, Toast, Minimap) */}
       {!hudHidden && (
-        <header className="pointer-events-none fixed top-0 left-0 right-0 z-20 p-2 lg:px-3">
-          <div className="pointer-events-auto mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-1.5 rounded-2xl border border-white/15 bg-slate-950/92 px-2.5 py-1.5 shadow-xl lg:flex-nowrap">
+        <div className="pointer-events-none fixed top-0 left-0 right-0 z-20 p-2 lg:px-3">
+          <header className="pointer-events-auto mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-1.5 rounded-2xl border border-white/15 bg-slate-950/92 px-2.5 py-1.5 shadow-xl lg:flex-nowrap">
             <div className="flex min-w-0 items-center gap-2">
               <button
                 type="button"
@@ -982,7 +1134,7 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
                 <div className="flex items-center gap-1.5">
                   <span
                     className={`max-w-[185px] truncate text-xs font-extrabold tracking-wide xl:max-w-[245px] ${
-                      isStage2 ? 'text-sky-200' : 'text-white'
+                      isStage3 ? 'text-cyan-200' : isStage2 ? 'text-sky-200' : 'text-white'
                     }`}
                     data-testid="hud-stage-district"
                     title={`STAGE ${worldState.activeStage} · ${currentDistrictDef.name}`}
@@ -1055,6 +1207,28 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
                   <span className="font-mono-num">{industrialBalance.average}%</span>
                 </button>
               )}
+
+              {isStage3 && (
+                <button
+                  type="button"
+                  data-testid="toggle-smartcity-metrics-btn"
+                  onClick={() => {
+                    audioEngine.playClick();
+                    setMetricsPanelOpen((v) => !v);
+                  }}
+                  className={`flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-bold whitespace-nowrap ${
+                    smartCityBalance.tone === 'emerald'
+                      ? 'border-cyan-400/60 bg-cyan-950/80 text-cyan-200'
+                      : smartCityBalance.tone === 'rose'
+                        ? 'border-rose-500/50 bg-rose-950/75 text-rose-200'
+                        : 'border-amber-500/50 bg-amber-950/75 text-amber-200'
+                  }`}
+                >
+                  <Cpu className="h-3.5 w-3.5" />
+                  <span className="hidden xl:inline">Smart City</span>
+                  <span className="font-mono-num">{smartCityBalance.average}%</span>
+                </button>
+              )}
             </div>
 
             <div className="flex shrink-0 items-center gap-1">
@@ -1067,14 +1241,16 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
                   setWorldMapOpen(false);
                   setBuildBarOpen((b) => !b);
                 }}
-                className={`flex h-8 items-center gap-1 rounded-lg border px-2 text-[11px] font-bold whitespace-nowrap ${
+                className={`flex h-8 items-center gap-1 rounded-lg border px-1.5 sm:px-2 text-[11px] font-bold whitespace-nowrap ${
                   buildBarOpen || placementBuildingId
                     ? 'border-amber-400 bg-amber-500 text-slate-950'
                     : 'border-amber-500/50 bg-amber-500/20 text-amber-200 hover:bg-amber-500/30'
                 }`}
               >
                 <Hammer className="h-3.5 w-3.5" />
-                <span>Bangun [B]</span>
+                <span>
+                  Bangun<span className="hidden sm:inline"> [B]</span>
+                </span>
               </button>
 
               <button
@@ -1164,12 +1340,122 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
                 <Pause className="h-3.5 w-3.5" />
               </button>
             </div>
+          </header>
+
+          {/* Sub-HUD Row: Left (Quest + Badges), Center (Notification on md+), Right (Minimap) */}
+          <div className="mx-auto mt-2 flex max-w-[1440px] items-start justify-between gap-2">
+            <div className="flex max-w-[205px] sm:max-w-[265px] flex-col gap-2">
+              {tracked && (
+                <button
+                  type="button"
+                  data-testid="quest-tracker-card"
+                  onClick={() => openMenuAtTab('misi')}
+                  className="pointer-events-auto rounded-xl border border-amber-500/40 bg-slate-950/90 p-2.5 text-left shadow-xl hover:border-amber-400"
+                >
+                  <div className="flex items-center justify-between gap-2 text-[10px] font-bold text-amber-300 uppercase">
+                    <span className="flex items-center gap-1">
+                      <Navigation className="h-3 w-3" /> Misi Stage {worldState.activeStage}
+                    </span>
+                    <span className="font-mono-num text-slate-300">
+                      {Math.round(
+                        Math.hypot(
+                          tracked.step.waypointX - activePos.x,
+                          tracked.step.waypointZ - activePos.z
+                        )
+                      )}{' '}
+                      m
+                    </span>
+                  </div>
+                  <div className="mt-0.5 text-xs font-extrabold text-white">{tracked.quest.title}</div>
+                  <div className="mt-1 text-[11px] leading-snug text-emerald-300">
+                    ▶ {tracked.step.description}
+                  </div>
+                </button>
+              )}
+
+              {insideBuildingDef && (
+                <div
+                  data-testid="interior-badge"
+                  className="rounded-xl border border-emerald-400/50 bg-emerald-950/90 px-3 py-1.5 text-xs font-bold text-emerald-200 shadow-lg"
+                >
+                  Di dalam: {insideBuildingDef.label}
+                </div>
+              )}
+
+              {boardedShipId && (
+                <div
+                  data-testid="ship-badge"
+                  className="flex items-center gap-1.5 rounded-xl border border-sky-400/50 bg-sky-950/90 px-3 py-1.5 text-xs font-bold text-sky-200 shadow-lg"
+                >
+                  <Ship className="h-3.5 w-3.5" />
+                  Di atas dek{' '}
+                  {boardedShipId === 'ship-pinisi'
+                    ? 'Kapal Pinisi Niaga'
+                    : boardedShipId === 'ship-stage1-return'
+                      ? 'Kapal Ekspres Industri'
+                      : 'Kapal Penumpang'}
+                </div>
+              )}
+
+              {activeVehicleDef && (
+                <div
+                  data-testid="vehicle-badge"
+                  className="rounded-xl border border-cyan-400/60 bg-cyan-950/90 px-3 py-1.5 text-xs font-bold text-cyan-200 shadow-lg"
+                >
+                  Mengendarai {activeVehicleDef.name} · Tekan [F] turun
+                </div>
+              )}
+            </div>
+
+            {s1.lastNotification && !metricsPanelOpen && (
+              <div
+                data-testid="hud-notification"
+                className="pointer-events-auto hidden max-w-xl rounded-xl border border-white/15 bg-slate-950/92 px-3.5 py-1.5 text-center text-xs font-semibold shadow-lg md:block"
+              >
+                <span
+                  className={
+                    s1.lastNotification.type === 'success'
+                      ? 'text-emerald-300'
+                      : s1.lastNotification.type === 'error'
+                        ? 'text-rose-300'
+                        : s1.lastNotification.type === 'warning'
+                          ? 'text-amber-300'
+                          : 'text-sky-200'
+                  }
+                >
+                  {s1.lastNotification.message}
+                </span>
+              </div>
+            )}
+
+            <div className="shrink-0 origin-top-right scale-90 sm:scale-100">
+              <MinimapWidget
+                activeStage={worldState.activeStage}
+                playerX={activePos.x}
+                playerZ={activePos.z}
+                facingYaw={activePos.facingYaw}
+                discoveredDistricts={activeDiscovered}
+                questTarget={
+                  tracked
+                    ? {
+                        x: tracked.step.waypointX,
+                        z: tracked.step.waypointZ,
+                        label: tracked.step.waypointLabel,
+                      }
+                    : null
+                }
+                onOpenWorldMap={() => {
+                  setMenuOpen(false);
+                  setWorldMapOpen(true);
+                }}
+              />
+            </div>
           </div>
 
           {s1.lastNotification && !metricsPanelOpen && (
             <div
-              data-testid="hud-notification"
-              className="pointer-events-auto mx-auto mt-2 max-w-xl rounded-xl border border-white/15 bg-slate-950/92 px-3.5 py-1.5 text-center text-xs font-semibold shadow-lg"
+              data-testid="hud-notification-mobile"
+              className="pointer-events-auto mx-auto mt-2 max-w-sm rounded-xl border border-white/15 bg-slate-950/92 px-3 py-1 text-center text-[11px] font-semibold shadow-lg md:hidden"
             >
               <span
                 className={
@@ -1186,14 +1472,14 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
               </span>
             </div>
           )}
-        </header>
+        </div>
       )}
 
       {/* Stage 2 Industrial Balance 8-Metric Popover */}
       {!hudHidden && isStage2 && metricsPanelOpen && (
         <div
           data-testid="industrial-metrics-panel"
-          className="fixed top-[72px] left-1/2 z-30 w-[92vw] max-w-md -translate-x-1/2 rounded-2xl border border-sky-400/50 bg-slate-950/95 p-4 text-xs shadow-2xl"
+          className="fixed top-[148px] sm:top-[72px] left-1/2 z-30 w-[92vw] max-w-md -translate-x-1/2 rounded-2xl border border-sky-400/50 bg-slate-950/95 p-4 text-xs shadow-2xl"
         >
           <div className="flex items-center justify-between border-b border-slate-800 pb-2">
             <div>
@@ -1238,97 +1524,56 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
         </div>
       )}
 
-      {/* Top-Left Compact Quest Tracker & Active Location Context */}
-      {!hudHidden && (
-        <div className="pointer-events-none fixed top-[70px] left-3 z-20 flex max-w-[265px] flex-col gap-2">
-          {tracked && (
+      {/* Stage 3 Smart City 9-Metric Popover */}
+      {!hudHidden && isStage3 && metricsPanelOpen && (
+        <div
+          data-testid="smartcity-metrics-panel"
+          className="fixed top-[148px] sm:top-[72px] left-1/2 z-30 w-[92vw] max-w-lg -translate-x-1/2 rounded-2xl border border-cyan-400/60 bg-slate-950/95 p-4 text-xs shadow-2xl"
+        >
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div>
+              <div className="text-[10px] font-bold text-cyan-300 uppercase">
+                Dasbor Indikator Smart City · Stage 3
+              </div>
+              <div className="text-sm font-extrabold text-white">{smartCityBalance.label}</div>
+            </div>
             <button
               type="button"
-              data-testid="quest-tracker-card"
-              onClick={() => openMenuAtTab('misi')}
-              className="pointer-events-auto rounded-xl border border-amber-500/40 bg-slate-950/90 p-2.5 text-left shadow-xl hover:border-amber-400"
+              onClick={() => setMetricsPanelOpen(false)}
+              className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 text-slate-300"
             >
-              <div className="flex items-center justify-between gap-2 text-[10px] font-bold text-amber-300 uppercase">
-                <span className="flex items-center gap-1">
-                  <Navigation className="h-3 w-3" /> Misi Stage {worldState.activeStage}
-                </span>
-                <span className="font-mono-num text-slate-300">
-                  {Math.round(
-                    Math.hypot(
-                      tracked.step.waypointX - activePos.x,
-                      tracked.step.waypointZ - activePos.z
-                    )
-                  )}{' '}
-                  m
-                </span>
-              </div>
-              <div className="mt-0.5 text-xs font-extrabold text-white">{tracked.quest.title}</div>
-              <div className="mt-1 text-[11px] leading-snug text-emerald-300">
-                ▶ {tracked.step.description}
-              </div>
+              <X className="h-3.5 w-3.5" />
             </button>
-          )}
-
-          {insideBuildingDef && (
-            <div
-              data-testid="interior-badge"
-              className="rounded-xl border border-emerald-400/50 bg-emerald-950/90 px-3 py-1.5 text-xs font-bold text-emerald-200 shadow-lg"
-            >
-              Di dalam: {insideBuildingDef.label}
-            </div>
-          )}
-
-          {boardedShipId && (
-            <div
-              data-testid="ship-badge"
-              className="flex items-center gap-1.5 rounded-xl border border-sky-400/50 bg-sky-950/90 px-3 py-1.5 text-xs font-bold text-sky-200 shadow-lg"
-            >
-              <Ship className="h-3.5 w-3.5" />
-              Di atas dek{' '}
-              {boardedShipId === 'ship-pinisi'
-                ? 'Kapal Pinisi Niaga'
-                : boardedShipId === 'ship-stage1-return'
-                  ? 'Kapal Ekspres Industri'
-                  : 'Kapal Penumpang'}
-            </div>
-          )}
-
-          {activeVehicleDef && (
-            <div
-              data-testid="vehicle-badge"
-              className="rounded-xl border border-cyan-400/60 bg-cyan-950/90 px-3 py-1.5 text-xs font-bold text-cyan-200 shadow-lg"
-            >
-              Mengendarai {activeVehicleDef.name} · Tekan [F] turun
-            </div>
-          )}
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {[
+              { label: 'Pertumbuhan Ekonomi', val: s3.smartCityMetrics.economicGrowth, color: 'bg-amber-400' },
+              { label: 'Ekonomi Digital', val: s3.smartCityMetrics.digitalDevelopment, color: 'bg-cyan-400' },
+              { label: 'Serapan Tenaga Kerja', val: s3.smartCityMetrics.employment, color: 'bg-sky-400' },
+              { label: 'Kepuasan Warga', val: s3.smartCityMetrics.publicSatisfaction, color: 'bg-pink-400' },
+              { label: 'Kualitas Lingkungan', val: s3.smartCityMetrics.environmentalQuality, color: 'bg-emerald-400' },
+              { label: 'Energi Terbarukan', val: s3.smartCityMetrics.renewableEnergy, color: 'bg-lime-400' },
+              { label: 'Efisiensi Transit', val: s3.smartCityMetrics.transportationEfficiency, color: 'bg-indigo-400' },
+              { label: 'Riset & Inovasi', val: s3.smartCityMetrics.researchDevelopment, color: 'bg-violet-400' },
+              { label: 'Kualitas Infrastruktur', val: s3.smartCityMetrics.infrastructureQuality, color: 'bg-teal-400' },
+            ].map((m) => (
+              <div key={m.label} className="rounded-lg border border-slate-800 bg-slate-900 p-2">
+                <div className="flex justify-between gap-1 text-[10px]">
+                  <span className="truncate text-slate-300">{m.label}</span>
+                  <span className="font-mono-num font-bold text-white">{m.val}%</span>
+                </div>
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-800">
+                  <div className={`h-full ${m.color}`} style={{ width: `${m.val}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2.5 text-[11px] text-slate-400">
+            Jalankan konsol Smart Grid, Lab Robotika, Terminal E-Commerce, Sirkuit EV, dan Dek Observasi serta bangun infrastruktur hijau untuk mempertahankan status Metropolis Cerdas.
+          </p>
         </div>
       )}
 
-      {/* Top-Right Live Minimap */}
-      {!hudHidden && (
-        <div className="pointer-events-none fixed top-[70px] right-3 z-20">
-          <MinimapWidget
-            activeStage={worldState.activeStage}
-            playerX={activePos.x}
-            playerZ={activePos.z}
-            facingYaw={activePos.facingYaw}
-            discoveredDistricts={activeDiscovered}
-            questTarget={
-              tracked
-                ? {
-                    x: tracked.step.waypointX,
-                    z: tracked.step.waypointZ,
-                    label: tracked.step.waypointLabel,
-                  }
-                : null
-            }
-            onOpenWorldMap={() => {
-              setMenuOpen(false);
-              setWorldMapOpen(true);
-            }}
-          />
-        </div>
-      )}
 
       {/* Contextual World Proximity Prompt */}
       {!hudHidden && nearTarget && !isPausedOrModal && !placementBuildingId && (
@@ -1344,7 +1589,11 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
               onClick={() => handleInteract(nearTarget)}
               className="animate-pop-in flex items-center gap-2 rounded-xl border border-sky-400 bg-slate-950/95 px-4 py-2.5 text-xs font-bold text-white shadow-2xl hover:bg-slate-900"
             >
-              <Ship className="h-4 w-4 text-sky-400" />
+              {nearTarget.targetStage === 3 || isStage3 ? (
+                <TrainFront className="h-4 w-4 text-cyan-400" />
+              ) : (
+                <Ship className="h-4 w-4 text-sky-400" />
+              )}
               <span>
                 {'promptLabel' in nearTarget ? nearTarget.promptLabel : `[E] ${nearTarget.label}`}
               </span>
@@ -1363,14 +1612,38 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
             </button>
           )}
 
+          {nearTarget.kind === 'activity_station' && (
+            <button
+              type="button"
+              data-testid="activity-station-prompt"
+              onClick={() => handleInteract(nearTarget)}
+              className="animate-pop-in flex items-center gap-2 rounded-xl border border-cyan-400 bg-slate-950/95 px-4 py-2.5 text-xs font-bold text-white shadow-2xl hover:bg-slate-900"
+            >
+              <Cpu className="h-4 w-4 text-cyan-400" />
+              <span>{nearTarget.promptLabel}</span>
+            </button>
+          )}
+
+          {nearTarget.kind === 'elevator_pad' && (
+            <button
+              type="button"
+              data-testid="elevator-interact-prompt"
+              onClick={() => setTouchActionQueue((q) => ({ action: 'interact', id: (q?.id ?? 0) + 1 }))}
+              className="animate-pop-in flex items-center gap-2 rounded-xl border border-emerald-400 bg-slate-950/95 px-4 py-2.5 text-xs font-bold text-white shadow-2xl hover:bg-slate-900"
+            >
+              <ArrowUpDown className="h-4 w-4 text-emerald-400" />
+              <span>{nearTarget.promptLabel}</span>
+            </button>
+          )}
+
           {nearTarget.kind === 'locked_stage3' && (
             <button
               type="button"
-              data-testid="locked-stage3-prompt"
+              data-testid="stage3-terminal-prompt"
               onClick={() => handleInteract(nearTarget)}
-              className="animate-pop-in flex items-center gap-2 rounded-xl border border-slate-500 bg-slate-950/95 px-4 py-2.5 text-xs font-bold text-slate-200 shadow-2xl hover:bg-slate-900"
+              className="animate-pop-in flex items-center gap-2 rounded-xl border border-cyan-400 bg-slate-950/95 px-4 py-2.5 text-xs font-bold text-cyan-100 shadow-2xl hover:bg-slate-900"
             >
-              <Lock className="h-4 w-4 text-amber-400" />
+              <TrainFront className="h-4 w-4 text-cyan-400" />
               <span>{nearTarget.promptLabel}</span>
             </button>
           )}
@@ -1531,15 +1804,19 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
         playerZ={activePos.z}
         stage1PlayerPos={{ x: s1.playerPos.x, z: s1.playerPos.z }}
         stage2PlayerPos={{ x: s2.playerPos.x, z: s2.playerPos.z }}
+        stage3PlayerPos={{ x: s3.playerPos.x, z: s3.playerPos.z }}
         discoveredDistricts={activeDiscovered}
         stage1Discovered={s1.discoveredDistricts}
         stage2Discovered={s2.discoveredDistricts}
+        stage3Discovered={s3.discoveredDistricts}
         collectedArtifacts={activeCollectibles}
         stage1Collected={s1.collectibles}
         stage2Collected={s2.collectibles}
+        stage3Collected={s3.collectibles}
         placedBuildings={activeBuildings}
         stage1Buildings={s1.placedBuildings}
         stage2Buildings={s2.placedBuildings}
+        stage3Buildings={s3.placedBuildings}
         questTarget={
           tracked
             ? {
@@ -1595,7 +1872,9 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
         }}
         onBuySupply={(itemId) => {
           audioEngine.playClick();
-          setWorldState((prev) => buyStage2Supply(prev, itemId));
+          setWorldState((prev) =>
+            prev.activeStage === 3 ? buyStage3Supply(prev, itemId) : buyStage2Supply(prev, itemId)
+          );
         }}
         onAcceptQuest={(qId) => {
           audioEngine.playClick();
@@ -1654,7 +1933,7 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
         onTriggerEmote={handleTriggerEmote}
       />
 
-      {/* Ship Voyage Cross-Stage Transition Modal (Stage 1 <-> Stage 2) */}
+      {/* Cross-Stage Voyage & High-Speed Train Modal (Stage 1 <-> Stage 2 <-> Stage 3) */}
       {voyageTargetStage && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4"
@@ -1662,57 +1941,97 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
           aria-modal="true"
           data-testid="ship-voyage-modal"
         >
-          <div className="animate-pop-in w-full max-w-lg rounded-2xl border border-sky-400/50 bg-slate-900 p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-sky-400/50 bg-sky-500/20">
-                  <Ship className="h-6 w-6 text-sky-300" />
-                </div>
-                <div>
-                  <div className="text-[11px] font-bold text-sky-300 uppercase">
-                    Pelayaran Antar-Era Nusantara
+          {(() => {
+            const isRailTrip = voyageTargetStage === 3 || (isStage3 && voyageTargetStage === 2);
+            const heading =
+              voyageTargetStage === 3
+                ? 'Menuju Stage 3: Kota Digital Masa Depan'
+                : voyageTargetStage === 2
+                  ? isStage3
+                    ? 'Kembali ke Stage 2: Kota Industri Global'
+                    : 'Menuju Stage 2: Kota Industri Global'
+                  : 'Kembali ke Stage 1: Kota Perdagangan';
+            const bodyCopy =
+              voyageTargetStage === 3
+                ? 'Kereta Cepat Nusantara siap melesat menuju Kota Digital Masa Depan! Seluruh koin, level XP, kostum, aksesori, gelar, dan isi tasmu terbawa utuh untuk menjelajahi gedung pencakar langit, skywalk, kendaraan listrik otonom, dan sistem Smart City.'
+                : voyageTargetStage === 2 && isStage3
+                  ? 'Kereta Cepat Nusantara siap mengantarmu kembali ke Stasiun Utara Kota Industri Global. Seluruh progres, bangunan, kendaraan, dan pencapaian Stage 3 tetap tersimpan aman.'
+                  : voyageTargetStage === 2
+                    ? 'Kapal Penumpang Pelabuhan siap berlayar menuju Pelabuhan Kota Industri! Seluruh koin, level XP, kostum, aksesori, gelar, dan isi tasmu dibawa utuh untuk membangun pabrik, rantai pasok, serta menjaga kesejahteraan pekerja & lingkungan.'
+                    : 'Kapal Ekspres Industri siap membawamu berlabuh kembali di Dermaga Kota Perdagangan Nusantara. Progres pabrik, bangunan, dan misimu di era lain tetap tersimpan aman.';
+
+            return (
+              <div
+                className={`animate-pop-in w-full max-w-lg rounded-2xl border bg-slate-900 p-6 shadow-2xl ${
+                  isRailTrip ? 'border-cyan-400/60' : 'border-sky-400/50'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`flex h-12 w-12 items-center justify-center rounded-xl border ${
+                        isRailTrip
+                          ? 'border-cyan-400/50 bg-cyan-500/20'
+                          : 'border-sky-400/50 bg-sky-500/20'
+                      }`}
+                    >
+                      {isRailTrip ? (
+                        <TrainFront className="h-6 w-6 text-cyan-300" />
+                      ) : (
+                        <Ship className="h-6 w-6 text-sky-300" />
+                      )}
+                    </div>
+                    <div>
+                      <div
+                        className={`text-[11px] font-bold uppercase ${
+                          isRailTrip ? 'text-cyan-300' : 'text-sky-300'
+                        }`}
+                      >
+                        {isRailTrip ? 'Kereta Cepat Nusantara' : 'Pelayaran Antar-Era Nusantara'}
+                      </div>
+                      <h3 className="text-lg font-extrabold text-white">{heading}</h3>
+                    </div>
                   </div>
-                  <h3 className="text-lg font-extrabold text-white">
-                    {voyageTargetStage === 2
-                      ? 'Menuju Stage 2: Kota Industri Global'
-                      : 'Kembali ke Stage 1: Kota Perdagangan'}
-                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setVoyageTargetStage(null)}
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-300"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <p className="mt-4 rounded-xl border border-slate-800 bg-slate-950 p-4 text-xs leading-relaxed text-slate-200">
+                  {bodyCopy}
+                </p>
+
+                <div className="mt-5 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setVoyageTargetStage(null)}
+                    className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="confirm-voyage-btn"
+                    onClick={() => confirmStageVoyage(voyageTargetStage)}
+                    className={`flex items-center gap-1.5 rounded-xl px-5 py-2 text-xs font-extrabold text-slate-950 ${
+                      isRailTrip ? 'bg-cyan-400 hover:bg-cyan-300' : 'bg-sky-500 hover:bg-sky-400'
+                    }`}
+                  >
+                    {isRailTrip ? (
+                      <TrainFront className="h-4 w-4" />
+                    ) : (
+                      <Ship className="h-4 w-4" />
+                    )}
+                    Berangkat Sekarang
+                  </button>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setVoyageTargetStage(null)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-300"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <p className="mt-4 rounded-xl border border-slate-800 bg-slate-950 p-4 text-xs leading-relaxed text-slate-200">
-              {voyageTargetStage === 2
-                ? 'Kapal Penumpang Pelabuhan siap berlayar menuju Pelabuhan Kota Industri! Seluruh koin, level XP, kostum, aksesori, gelar, dan isi tasmu dibawa utuh untuk membangun pabrik, rantai pasok, serta menjaga kesejahteraan pekerja & lingkungan.'
-                : 'Kapal Ekspres Industri siap membawamu berlabuh kembali di Dermaga Kota Perdagangan Nusantara. Progres pabrik, bangunan, dan misimu di Kota Industri tetap tersimpan aman.'}
-            </p>
-
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setVoyageTargetStage(null)}
-                className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                data-testid="confirm-voyage-btn"
-                onClick={() => confirmStageVoyage(voyageTargetStage)}
-                className="flex items-center gap-1.5 rounded-xl bg-sky-500 px-5 py-2 text-xs font-extrabold text-slate-950 hover:bg-sky-400"
-              >
-                <Ship className="h-4 w-4" />
-                Berangkat Sekarang
-              </button>
-            </div>
-          </div>
+            );
+          })()}
         </div>
       )}
 
@@ -1871,50 +2190,112 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
         </div>
       )}
 
-      {/* Locked Stage 3 Preview Modal (Strictly Locked!) */}
-      {stage3PreviewOpen && (
+      {/* Stage 3 Smart City Activity Station Modal */}
+      {activeActivityStation && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-4"
           role="dialog"
           aria-modal="true"
-          data-testid="stage3-preview-modal"
+          data-testid="activity-station-modal"
         >
-          <div className="animate-pop-in w-full max-w-md rounded-2xl border border-slate-600 bg-slate-900 p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-slate-600 bg-slate-800">
-                  <Lock className="h-6 w-6 text-amber-400" />
-                </div>
-                <div>
-                  <div className="text-[11px] font-bold text-amber-300 uppercase">
-                    TERKUNCI · Dalam Pengembangan
+          {(() => {
+            const outputDef = activeActivityStation.outputItemId
+              ? getItemDefById(activeActivityStation.outputItemId)
+              : null;
+            const runCount = s3.activityCounts[activeActivityStation.kind] ?? 0;
+            const effectEntries: Array<{ label: string; delta: number }> = [
+              { label: 'Ekonomi', delta: activeActivityStation.metricEffects.economicGrowth ?? 0 },
+              { label: 'Digital', delta: activeActivityStation.metricEffects.digitalDevelopment ?? 0 },
+              { label: 'Pekerjaan', delta: activeActivityStation.metricEffects.employment ?? 0 },
+              { label: 'Kepuasan', delta: activeActivityStation.metricEffects.publicSatisfaction ?? 0 },
+              { label: 'Lingkungan', delta: activeActivityStation.metricEffects.environmentalQuality ?? 0 },
+              { label: 'Energi Bersih', delta: activeActivityStation.metricEffects.renewableEnergy ?? 0 },
+              { label: 'Transit', delta: activeActivityStation.metricEffects.transportationEfficiency ?? 0 },
+              { label: 'Riset & AI', delta: activeActivityStation.metricEffects.researchDevelopment ?? 0 },
+              { label: 'Infrastruktur', delta: activeActivityStation.metricEffects.infrastructureQuality ?? 0 },
+            ].filter((e) => e.delta > 0);
+
+            return (
+              <div className="animate-pop-in w-full max-w-lg rounded-2xl border border-cyan-400/60 bg-slate-900 p-6 shadow-2xl">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-cyan-400/50 bg-cyan-500/20">
+                      <Cpu className="h-6 w-6 text-cyan-300" />
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-bold text-cyan-300 uppercase">
+                        Terminal Smart City Stage 3 · Dijalankan {runCount}x
+                      </div>
+                      <h3 className="text-lg font-extrabold text-white">
+                        {activeActivityStation.name}
+                      </h3>
+                    </div>
                   </div>
-                  <h3 className="text-lg font-extrabold text-white">
-                    Stage 3: Kota Digital Tanpa Batas
-                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setActiveActivityStationId(null)}
+                    aria-label="Tutup Terminal Aktivitas"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-300"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <p className="mt-3 text-xs leading-relaxed text-slate-200">
+                  {activeActivityStation.description}
+                </p>
+
+                <div className="mt-4 grid grid-cols-2 gap-2.5 text-xs">
+                  <div className="rounded-xl border border-amber-500/35 bg-amber-950/35 p-3">
+                    <div className="text-[10px] font-bold text-amber-300 uppercase">Imbalan Kota</div>
+                    <div className="mt-1 font-mono-num text-sm font-extrabold text-white">
+                      +{activeActivityStation.rewardCoins} Koin · +{activeActivityStation.rewardXp} XP
+                    </div>
+                    {outputDef && (
+                      <div className="mt-1 text-[11px] text-emerald-300">
+                        +1 {outputDef.name} masuk ke Tas
+                      </div>
+                    )}
+                  </div>
+                  <div className="rounded-xl border border-cyan-500/35 bg-cyan-950/35 p-3">
+                    <div className="text-[10px] font-bold text-cyan-300 uppercase">Dampak Indikator</div>
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {effectEntries.map((eff) => (
+                        <span
+                          key={eff.label}
+                          className="rounded border border-cyan-400/30 bg-slate-950 px-1.5 py-0.5 text-[10px] font-semibold text-cyan-200"
+                        >
+                          {eff.label} +{eff.delta}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5 flex flex-wrap justify-end gap-2">
+                  <button
+                    type="button"
+                    data-testid="perform-stage3-activity-btn"
+                    onClick={() => {
+                      audioEngine.playLevelUp();
+                      setWorldState((prev) => performStage3Activity(prev, activeActivityStation.id));
+                    }}
+                    className="flex items-center gap-1.5 rounded-xl bg-cyan-400 px-4 py-2 text-xs font-extrabold text-slate-950 hover:bg-cyan-300"
+                  >
+                    <Zap className="h-4 w-4" />
+                    {activeActivityStation.actionLabel}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveActivityStationId(null)}
+                    className="rounded-xl bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700"
+                  >
+                    Tutup
+                  </button>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setStage3PreviewOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-300"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <p className="mt-4 rounded-xl border border-slate-800 bg-slate-950 p-4 text-xs leading-relaxed text-slate-300">
-              Terminal Kereta Cepat Masa Depan menandai perbatasan menuju era Smart City & Glokalisasi Digital (Stage 3). Saat ini gerbang Stage 3 masih <strong className="text-amber-300">TERKUNCI</strong> dan sedang disiapkan untuk pembaruan mendatang. Teruskan eksplorasi dan tuntaskan seluruh misi Stage 1 serta Stage 2!
-            </p>
-            <div className="mt-5 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setStage3PreviewOpen(false)}
-                className="rounded-xl bg-slate-800 px-5 py-2 text-xs font-bold text-white hover:bg-slate-700"
-              >
-                Kembali ke Kota Industri
-              </button>
-            </div>
-          </div>
+            );
+          })()}
         </div>
       )}
 
@@ -2330,7 +2711,7 @@ export const ModeBermain: React.FC<ModeBermainProps> = ({
           <div className="animate-pop-in w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-6 text-center shadow-2xl">
             <h2 className="text-2xl font-extrabold text-white">Permainan Dijeda</h2>
             <p className="mt-2 text-xs text-slate-300">
-              Progres Stage 1 & Stage 2 tersimpan otomatis ke browser.
+              Progres Stage 1, Stage 2 & Stage 3 tersimpan otomatis ke browser.
             </p>
             <div className="mt-5 flex flex-col gap-2.5">
               <button

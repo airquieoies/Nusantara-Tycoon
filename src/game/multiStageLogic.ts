@@ -7,6 +7,9 @@ import {
   DEFAULT_CHARACTER_APPEARANCE,
   PLAYER_TITLES,
   QuestEventType,
+  STAGE1_ACHIEVEMENTS,
+  STAGE1_COLLECTIBLES,
+  STAGE1_DISTRICTS,
   STAGE1_ITEMS,
   STAGE1_QUESTS,
 } from './stage1Data';
@@ -2348,7 +2351,7 @@ export function useMultiStageInventoryItem(
   }
 
   if (!hasInventoryItem(state.stage1.inventory, itemId)) return state;
-  if (itemId === 'kopi-rempah') {
+  if (state.activeStage === 2 && itemId === 'kopi-rempah') {
     const nextInv = removeItemFromInventory(state.stage1.inventory, itemId, 1);
     const nextS1 = addXpAndCoins({ ...state.stage1, inventory: nextInv }, 25, 0);
     const nextS2: Stage2OpenWorldState = {
@@ -2363,7 +2366,7 @@ export function useMultiStageInventoryItem(
     );
   }
 
-  if (itemId === 'palu-arsitek') {
+  if (state.activeStage === 2 && itemId === 'palu-arsitek') {
     const hasConstructing = state.stage2.placedBuildings.some((b) => b.isConstructing);
     if (!hasConstructing) {
       return withGlobalNotif(state, 'warning', 'Belum ada proyek bangunan Stage 2 yang sedang dibangun.');
@@ -2747,6 +2750,280 @@ export function resetMultiStageStorage(): MultiStageWorldState {
     // ignore
   }
   return createInitialMultiStageState();
+}
+
+export interface StageSummarySnapshot {
+  stage: 1 | 2 | 3;
+  name: string;
+  imageSrc: string;
+  identity: string;
+  storyDesc: string;
+  unlocked: boolean;
+  isActive: boolean;
+  questsCompleted: number;
+  questsTotal: number;
+  districtsDiscovered: number;
+  districtsTotal: number;
+  collectiblesFound: number;
+  collectiblesTotal: number;
+  achievementsUnlocked: number;
+  achievementsTotal: number;
+  placedBuildingsCount: number;
+  score: number;
+  progressPercent: number;
+}
+
+export interface GlobalProgressionSummary {
+  displayName: string;
+  activeStage: 1 | 2 | 3;
+  activeStageName: string;
+  unlockedStages: (1 | 2 | 3)[];
+  playerLevel: number;
+  xp: number;
+  xpToNext: number;
+  xpProgressPercent: number;
+  coins: number;
+  equippedTitleId: string;
+  equippedTitleLabel: string;
+  completedMissions: number;
+  totalMissions: number;
+  placedBuildingsCount: number;
+  citiesDeveloped: number;
+  achievementsUnlocked: number;
+  achievementsTotal: number;
+  costumesUnlocked: number;
+  costumesTotal: number;
+  collectiblesFound: number;
+  collectiblesTotal: number;
+  districtsDiscovered: number;
+  districtsTotal: number;
+  cityDevelopmentProgress: number;
+  bestStageScore: number;
+  unlockedAchievementTitles: { id: string; stage: 1 | 2 | 3; title: string }[];
+  unlockedCostumeLabels: { id: string; label: string; slot: string }[];
+  stages: [StageSummarySnapshot, StageSummarySnapshot, StageSummarySnapshot];
+}
+
+function computeStageProgressPercent(params: {
+  questsCompleted: number;
+  questsTotal: number;
+  districtsDiscovered: number;
+  districtsTotal: number;
+  collectiblesFound: number;
+  collectiblesTotal: number;
+  achievementsUnlocked: number;
+  achievementsTotal: number;
+}): number {
+  const qRatio = params.questsTotal > 0 ? params.questsCompleted / params.questsTotal : 0;
+  const dRatio = params.districtsTotal > 0 ? params.districtsDiscovered / params.districtsTotal : 0;
+  const cRatio = params.collectiblesTotal > 0 ? params.collectiblesFound / params.collectiblesTotal : 0;
+  const aRatio = params.achievementsTotal > 0 ? params.achievementsUnlocked / params.achievementsTotal : 0;
+  return Math.round(clamp((qRatio * 0.4 + dRatio * 0.2 + cRatio * 0.2 + aRatio * 0.2) * 100, 0, 100));
+}
+
+export function getGlobalProgressionSummary(state: MultiStageWorldState): GlobalProgressionSummary {
+  const s1QuestsDone = Object.values(state.stage1.quests).filter((q) => q.status === 'completed').length;
+  const s2QuestsDone = Object.values(state.stage2.quests).filter((q) => q.status === 'completed').length;
+  const s3QuestsDone = Object.values(state.stage3.quests).filter((q) => q.status === 'completed').length;
+
+  const s1Progress = computeStageProgressPercent({
+    questsCompleted: s1QuestsDone,
+    questsTotal: STAGE1_QUESTS.length,
+    districtsDiscovered: state.stage1.discoveredDistricts.length,
+    districtsTotal: STAGE1_DISTRICTS.length,
+    collectiblesFound: state.stage1.collectibles.length,
+    collectiblesTotal: STAGE1_COLLECTIBLES.length,
+    achievementsUnlocked: state.stage1.achievements.length,
+    achievementsTotal: STAGE1_ACHIEVEMENTS.length,
+  });
+
+  const s2Progress = computeStageProgressPercent({
+    questsCompleted: s2QuestsDone,
+    questsTotal: STAGE2_QUESTS.length,
+    districtsDiscovered: state.stage2.discoveredDistricts.length,
+    districtsTotal: STAGE2_DISTRICTS.length,
+    collectiblesFound: state.stage2.collectibles.length,
+    collectiblesTotal: STAGE2_COLLECTIBLES.length,
+    achievementsUnlocked: state.stage2.achievements.length,
+    achievementsTotal: STAGE2_ACHIEVEMENTS.length,
+  });
+
+  const s3Progress = computeStageProgressPercent({
+    questsCompleted: s3QuestsDone,
+    questsTotal: STAGE3_QUESTS.length,
+    districtsDiscovered: state.stage3.discoveredDistricts.length,
+    districtsTotal: STAGE3_DISTRICTS.length,
+    collectiblesFound: state.stage3.collectibles.length,
+    collectiblesTotal: STAGE3_COLLECTIBLES.length,
+    achievementsUnlocked: state.stage3.achievements.length,
+    achievementsTotal: STAGE3_ACHIEVEMENTS.length,
+  });
+
+  const stages: [StageSummarySnapshot, StageSummarySnapshot, StageSummarySnapshot] = [
+    {
+      stage: 1,
+      name: 'Kota Nusantara',
+      imageSrc: '/assets/stages/stage1-kota-nusantara.png',
+      identity: 'Permukiman Pesisir · Pasar Rempah · Pelabuhan Maritim',
+      storyDesc:
+        'Bangun kota perdagangan maritim berakar budaya Nusantara: kelola pasar rakyat, pelabuhan Pinisi, dan akulturasi lintas bangsa.',
+      unlocked: state.unlockedStages.includes(1),
+      isActive: state.activeStage === 1,
+      questsCompleted: s1QuestsDone,
+      questsTotal: STAGE1_QUESTS.length,
+      districtsDiscovered: state.stage1.discoveredDistricts.length,
+      districtsTotal: STAGE1_DISTRICTS.length,
+      collectiblesFound: state.stage1.collectibles.length,
+      collectiblesTotal: STAGE1_COLLECTIBLES.length,
+      achievementsUnlocked: state.stage1.achievements.length,
+      achievementsTotal: STAGE1_ACHIEVEMENTS.length,
+      placedBuildingsCount: state.stage1.placedBuildings.length,
+      score: state.stage1.score,
+      progressPercent: s1Progress,
+    },
+    {
+      stage: 2,
+      name: 'Kota Industri',
+      imageSrc: '/assets/stages/stage2-kota-industri.png',
+      identity: 'Pabrik Manufaktur · Jalur Rel · Logistik & Ekspor',
+      storyDesc:
+        'Pimpin revolusi produksi: hubungkan pabrik tekstil, pangan, dan kereta logistik sambil menjaga kesejahteraan pekerja dan kelestarian sungai.',
+      unlocked: state.unlockedStages.includes(2),
+      isActive: state.activeStage === 2,
+      questsCompleted: s2QuestsDone,
+      questsTotal: STAGE2_QUESTS.length,
+      districtsDiscovered: state.stage2.discoveredDistricts.length,
+      districtsTotal: STAGE2_DISTRICTS.length,
+      collectiblesFound: state.stage2.collectibles.length,
+      collectiblesTotal: STAGE2_COLLECTIBLES.length,
+      achievementsUnlocked: state.stage2.achievements.length,
+      achievementsTotal: STAGE2_ACHIEVEMENTS.length,
+      placedBuildingsCount: state.stage2.placedBuildings.length,
+      score: state.stage2.score,
+      progressPercent: s2Progress,
+    },
+    {
+      stage: 3,
+      name: 'Kota Digital Masa Depan',
+      imageSrc: '/assets/stages/stage3-kota-digital.png',
+      identity: 'Pencakar Langit · Skywalk Kaca · Transportasi EV · Green Tech',
+      storyDesc:
+        'Wujudkan metropolis futuristik yang terhubung secara global melalui smart city, riset AI, energi terbarukan, dan glokalisasi UMKM.',
+      unlocked: state.unlockedStages.includes(3),
+      isActive: state.activeStage === 3,
+      questsCompleted: s3QuestsDone,
+      questsTotal: STAGE3_QUESTS.length,
+      districtsDiscovered: state.stage3.discoveredDistricts.length,
+      districtsTotal: STAGE3_DISTRICTS.length,
+      collectiblesFound: state.stage3.collectibles.length,
+      collectiblesTotal: STAGE3_COLLECTIBLES.length,
+      achievementsUnlocked: state.stage3.achievements.length,
+      achievementsTotal: STAGE3_ACHIEVEMENTS.length,
+      placedBuildingsCount: state.stage3.placedBuildings.length,
+      score: state.stage3.score,
+      progressPercent: s3Progress,
+    },
+  ];
+
+  const completedMissions = s1QuestsDone + s2QuestsDone + s3QuestsDone;
+  const totalMissions = STAGE1_QUESTS.length + STAGE2_QUESTS.length + STAGE3_QUESTS.length;
+  const placedBuildingsCount =
+    state.stage1.placedBuildings.length +
+    state.stage2.placedBuildings.length +
+    state.stage3.placedBuildings.length;
+  const achievementsUnlocked =
+    state.stage1.achievements.length +
+    state.stage2.achievements.length +
+    state.stage3.achievements.length;
+  const achievementsTotal =
+    STAGE1_ACHIEVEMENTS.length + STAGE2_ACHIEVEMENTS.length + STAGE3_ACHIEVEMENTS.length;
+  const collectiblesFound =
+    state.stage1.collectibles.length +
+    state.stage2.collectibles.length +
+    state.stage3.collectibles.length;
+  const collectiblesTotal =
+    STAGE1_COLLECTIBLES.length + STAGE2_COLLECTIBLES.length + STAGE3_COLLECTIBLES.length;
+  const districtsDiscovered =
+    state.stage1.discoveredDistricts.length +
+    state.stage2.discoveredDistricts.length +
+    state.stage3.discoveredDistricts.length;
+  const districtsTotal =
+    STAGE1_DISTRICTS.length + STAGE2_DISTRICTS.length + STAGE3_DISTRICTS.length;
+
+  const citiesDeveloped = stages.filter(
+    (st) =>
+      st.placedBuildingsCount > 0 ||
+      st.questsCompleted > 0 ||
+      st.collectiblesFound > 0 ||
+      st.districtsDiscovered > 1
+  ).length;
+
+  const cityDevelopmentProgress = Math.round((s1Progress + s2Progress + s3Progress) / 3);
+  const titleDef = PLAYER_TITLES.find((t) => t.id === state.stage1.equippedTitle) ?? PLAYER_TITLES[0];
+  const activeStageName =
+    stages.find((st) => st.stage === state.activeStage)?.name ?? 'Kota Nusantara';
+
+  const unlockedAchievementTitles: { id: string; stage: 1 | 2 | 3; title: string }[] = [
+    ...state.stage1.achievements
+      .map((id) => {
+        const def = STAGE1_ACHIEVEMENTS.find((a) => a.id === id);
+        return def ? { id, stage: 1 as const, title: def.title } : null;
+      })
+      .filter((x): x is { id: string; stage: 1; title: string } => x !== null),
+    ...state.stage2.achievements
+      .map((id) => {
+        const def = STAGE2_ACHIEVEMENTS.find((a) => a.id === id);
+        return def ? { id, stage: 2 as const, title: def.title } : null;
+      })
+      .filter((x): x is { id: string; stage: 2; title: string } => x !== null),
+    ...state.stage3.achievements
+      .map((id) => {
+        const def = STAGE3_ACHIEVEMENTS.find((a) => a.id === id);
+        return def ? { id, stage: 3 as const, title: def.title } : null;
+      })
+      .filter((x): x is { id: string; stage: 3; title: string } => x !== null),
+  ];
+
+  const unlockedCostumeLabels: { id: string; label: string; slot: string }[] = [];
+  for (const id of state.stage1.unlockedCustomizationIds) {
+    const item = CUSTOMIZATION_ITEMS.find((c) => c.id === id);
+    if (item) {
+      unlockedCostumeLabels.push({ id: item.id, label: item.name, slot: String(item.slot) });
+    }
+  }
+
+  return {
+    displayName: state.displayName,
+    activeStage: state.activeStage,
+    activeStageName,
+    unlockedStages: state.unlockedStages,
+    playerLevel: state.stage1.playerLevel,
+    xp: state.stage1.xp,
+    xpToNext: state.stage1.xpToNext,
+    xpProgressPercent: Math.round(
+      clamp((state.stage1.xp / Math.max(1, state.stage1.xpToNext)) * 100, 0, 100)
+    ),
+    coins: state.stage1.coins,
+    equippedTitleId: state.stage1.equippedTitle,
+    equippedTitleLabel: titleDef.name,
+    completedMissions,
+    totalMissions,
+    placedBuildingsCount,
+    citiesDeveloped,
+    achievementsUnlocked,
+    achievementsTotal,
+    costumesUnlocked: state.stage1.unlockedCustomizationIds.length,
+    costumesTotal: CUSTOMIZATION_ITEMS.length,
+    collectiblesFound,
+    collectiblesTotal,
+    districtsDiscovered,
+    districtsTotal,
+    cityDevelopmentProgress,
+    bestStageScore: Math.max(state.stage1.score, state.stage2.score, state.stage3.score),
+    unlockedAchievementTitles,
+    unlockedCostumeLabels,
+    stages,
+  };
 }
 
 export {

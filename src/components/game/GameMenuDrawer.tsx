@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Award,
   Backpack,
@@ -61,8 +61,16 @@ import {
   STAGE2_MARKET_SUPPLIES,
   STAGE2_QUESTS,
 } from '../../game/stage2Data';
+import {
+  STAGE3_ACHIEVEMENTS,
+  STAGE3_COLLECTIBLES,
+  STAGE3_COLLECTION_MILESTONES,
+  STAGE3_DISTRICTS,
+  STAGE3_MARKET_SUPPLIES,
+  STAGE3_QUESTS,
+} from '../../game/stage3Data';
 import { FacialExpression } from '../../game/threeCharacterRig';
-import { StageChallenge } from '../../game/types';
+import { StageChallenge, StageNumber } from '../../game/types';
 import { CharacterCustomizerStudio, RARITY_BADGE_STYLES } from './CharacterCustomizerStudio';
 import { CharacterPreview3D } from './CharacterPreview3D';
 
@@ -182,8 +190,15 @@ export const GameMenuDrawer: React.FC<GameMenuDrawerProps> = ({
   onTriggerEmote,
 }) => {
   const [collectibleFilter, setCollectibleFilter] = useState<'all' | CollectibleCategory>('all');
-  const [koleksiStageView, setKoleksiStageView] = useState<1 | 2>(state.activeStage);
-  const [misiStageView, setMisiStageView] = useState<1 | 2>(state.activeStage);
+  const [koleksiStageView, setKoleksiStageView] = useState<StageNumber>(state.activeStage);
+  const [misiStageView, setMisiStageView] = useState<StageNumber>(state.activeStage);
+
+  useEffect(() => {
+    if (open) {
+      setKoleksiStageView(state.activeStage);
+      setMisiStageView(state.activeStage);
+    }
+  }, [open, state.activeStage]);
 
   // Wardrobe Collection state
   const [wardrobeFilter, setWardrobeFilter] = useState<'all' | 'owned' | 'locked'>('all');
@@ -208,29 +223,52 @@ export const GameMenuDrawer: React.FC<GameMenuDrawerProps> = ({
 
   const s1 = state.stage1;
   const s2 = state.stage2;
+  const s3 = state.stage3;
+  const isStage3Active = state.activeStage === 3;
   const isStage2Active = state.activeStage === 2;
   const activeTitleDef = PLAYER_TITLES.find((t) => t.id === s1.equippedTitle) ?? PLAYER_TITLES[0];
 
-  const activeDistrictCount = isStage2Active
-    ? `${s2.discoveredDistricts.length}/${STAGE2_DISTRICTS.length}`
-    : `${s1.discoveredDistricts.length}/${STAGE1_DISTRICTS.length}`;
-  const activeCollectibleCount = isStage2Active
-    ? `${s2.collectibles.length}/${STAGE2_COLLECTIBLES.length}`
-    : `${s1.collectibles.length}/${STAGE1_COLLECTIBLES.length}`;
+  const activeDistrictCount = isStage3Active
+    ? `${s3.discoveredDistricts.length}/${STAGE3_DISTRICTS.length}`
+    : isStage2Active
+      ? `${s2.discoveredDistricts.length}/${STAGE2_DISTRICTS.length}`
+      : `${s1.discoveredDistricts.length}/${STAGE1_DISTRICTS.length}`;
+  const activeCollectibleCount = isStage3Active
+    ? `${s3.collectibles.length}/${STAGE3_COLLECTIBLES.length}`
+    : isStage2Active
+      ? `${s2.collectibles.length}/${STAGE2_COLLECTIBLES.length}`
+      : `${s1.collectibles.length}/${STAGE1_COLLECTIBLES.length}`;
 
   // Collections computed for viewed stage
+  const viewingS3Koleksi = koleksiStageView === 3;
   const viewingS2Koleksi = koleksiStageView === 2;
-  const shownCollectibles = viewingS2Koleksi
-    ? STAGE2_COLLECTIBLES
-    : collectibleFilter === 'all'
-      ? STAGE1_COLLECTIBLES
-      : STAGE1_COLLECTIBLES.filter((c) => c.category === collectibleFilter);
-  const collectedIdsForView = viewingS2Koleksi ? s2.collectibles : s1.collectibles;
-  const milestonesForView = viewingS2Koleksi ? STAGE2_COLLECTION_MILESTONES : COLLECTION_MILESTONES;
-  const claimedMilestonesForView = viewingS2Koleksi ? s2.claimedMilestones : s1.claimedMilestones;
-  const totalCollectiblePool = viewingS2Koleksi
-    ? STAGE2_COLLECTIBLES.length
-    : STAGE1_COLLECTIBLES.length;
+  const shownCollectibles = viewingS3Koleksi
+    ? STAGE3_COLLECTIBLES
+    : viewingS2Koleksi
+      ? STAGE2_COLLECTIBLES
+      : collectibleFilter === 'all'
+        ? STAGE1_COLLECTIBLES
+        : STAGE1_COLLECTIBLES.filter((c) => c.category === collectibleFilter);
+  const collectedIdsForView = viewingS3Koleksi
+    ? s3.collectibles
+    : viewingS2Koleksi
+      ? s2.collectibles
+      : s1.collectibles;
+  const milestonesForView = viewingS3Koleksi
+    ? STAGE3_COLLECTION_MILESTONES
+    : viewingS2Koleksi
+      ? STAGE2_COLLECTION_MILESTONES
+      : COLLECTION_MILESTONES;
+  const claimedMilestonesForView = viewingS3Koleksi
+    ? s3.claimedMilestones
+    : viewingS2Koleksi
+      ? s2.claimedMilestones
+      : s1.claimedMilestones;
+  const totalCollectiblePool = viewingS3Koleksi
+    ? STAGE3_COLLECTIBLES.length
+    : viewingS2Koleksi
+      ? STAGE2_COLLECTIBLES.length
+      : STAGE1_COLLECTIBLES.length;
   const collectionPercent = Math.round((collectedIdsForView.length / totalCollectiblePool) * 100);
 
   // Wardrobe filtered items
@@ -244,6 +282,7 @@ export const GameMenuDrawer: React.FC<GameMenuDrawerProps> = ({
   });
 
   // Quests & Challenges for viewed stage
+  const viewingS3Misi = misiStageView === 3;
   const viewingS2Misi = misiStageView === 2;
   const stageChallenges = STAGE_CHALLENGES.filter((c) => c.stage === misiStageView);
 
@@ -279,7 +318,7 @@ export const GameMenuDrawer: React.FC<GameMenuDrawerProps> = ({
                   if (t.id === 'sosial') onRefreshRooms();
                   onChangeTab(t.id);
                 }}
-                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold transition-colors ${
+                className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-bold ${
                   activeTab === t.id
                     ? 'bg-amber-500 text-slate-950'
                     : 'border border-slate-800 bg-slate-900 text-slate-300 hover:text-white'
@@ -340,13 +379,13 @@ export const GameMenuDrawer: React.FC<GameMenuDrawerProps> = ({
                   <div className="rounded-lg bg-slate-900 p-2">
                     <div className="text-slate-400">Reputasi</div>
                     <div className="font-mono-num text-sm font-bold text-amber-300">
-                      {isStage2Active ? s2.reputation : s1.reputation}%
+                      {isStage3Active ? s3.reputation : isStage2Active ? s2.reputation : s1.reputation}%
                     </div>
                   </div>
                   <div className="rounded-lg bg-slate-900 p-2">
                     <div className="text-slate-400">Bahagia</div>
                     <div className="font-mono-num text-sm font-bold text-emerald-300">
-                      {isStage2Active ? s2.happiness : s1.happiness}%
+                      {isStage3Active ? s3.happiness : isStage2Active ? s2.happiness : s1.happiness}%
                     </div>
                   </div>
                   <div className="rounded-lg bg-slate-900 p-2">
@@ -438,7 +477,7 @@ export const GameMenuDrawer: React.FC<GameMenuDrawerProps> = ({
                       Lemari Koleksi Busana Global ({costumeStats.unlockedCount}/{costumeStats.totalCount} ·{' '}
                       {costumeStats.pct}%)
                     </span>
-                    <span className="text-amber-300">Tersedia di Stage 1 & Stage 2</span>
+                    <span className="text-amber-300">Tersedia di Stage 1, 2 &amp; 3</span>
                   </div>
                   <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-800">
                     <div className="h-full bg-amber-400" style={{ width: `${costumeStats.pct}%` }} />
@@ -534,7 +573,7 @@ export const GameMenuDrawer: React.FC<GameMenuDrawerProps> = ({
             <div className="space-y-5">
               <div>
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <h3 className="text-sm font-extrabold text-white">Tas & Barang Bawaan Bersama (Stage 1 & 2)</h3>
+                  <h3 className="text-sm font-extrabold text-white">Tas &amp; Barang Bawaan Bersama (Stage 1, 2 &amp; 3)</h3>
                   <span className="text-xs text-slate-400">
                     Koin Aktif: <strong className="text-amber-300">{s1.coins}</strong> · Inventaris terbawa saat menyeberang antar-era.
                   </span>
@@ -586,7 +625,7 @@ export const GameMenuDrawer: React.FC<GameMenuDrawerProps> = ({
               {isStage2Active && (
                 <div className="rounded-xl border border-sky-500/35 bg-slate-950 p-4" data-testid="stage2-supply-market">
                   <div className="mb-2 flex items-center gap-2 text-xs font-extrabold text-sky-300 uppercase">
-                    <ShoppingBag className="h-4 w-4" /> Toko Pasokan Bahan Baku & K3 Kota Industri
+                    <ShoppingBag className="h-4 w-4" /> Toko Pasokan Bahan Baku &amp; K3 Kota Industri
                   </div>
                   <div className="grid gap-2.5 sm:grid-cols-2">
                     {STAGE2_MARKET_SUPPLIES.map((offer) => {
@@ -619,6 +658,47 @@ export const GameMenuDrawer: React.FC<GameMenuDrawerProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* Stage 3 Futuristic Smart-Tech Supply Market */}
+              {isStage3Active && (
+                <div className="rounded-xl border border-cyan-500/40 bg-slate-950 p-4" data-testid="stage3-supply-market">
+                  <div className="mb-2 flex items-center gap-2 text-xs font-extrabold text-cyan-300 uppercase">
+                    <ShoppingBag className="h-4 w-4" /> Pasar Teknologi &amp; Energi Hijau Smart City
+                  </div>
+                  <div className="grid gap-2.5 sm:grid-cols-2">
+                    {STAGE3_MARKET_SUPPLIES.map((offer) => {
+                      const canAfford = s1.coins >= offer.costCoins;
+                      const itemDef = getItemDefById(offer.itemId);
+                      return (
+                        <div
+                          key={offer.itemId}
+                          className="flex items-center justify-between gap-2 rounded-lg border border-slate-800 bg-slate-900 p-2.5 text-xs"
+                        >
+                          <div>
+                            <div className="font-bold text-white">{offer.label}</div>
+                            <div className="text-[10px] text-slate-400">
+                              {itemDef?.effectLabel ?? itemDef?.description ?? 'Komponen Smart City'}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            data-testid={`buy-supply-${offer.itemId}`}
+                            disabled={!canAfford}
+                            onClick={() => onBuySupply(offer.itemId)}
+                            className={`shrink-0 rounded-lg px-3 py-1.5 text-[11px] font-extrabold ${
+                              canAfford
+                                ? 'bg-cyan-400 text-slate-950 hover:bg-cyan-300'
+                                : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                            }`}
+                          >
+                            Beli ({offer.costCoins})
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -631,9 +711,11 @@ export const GameMenuDrawer: React.FC<GameMenuDrawerProps> = ({
                     {collectionPercent}%)
                   </h3>
                   <p className="text-[11px] text-amber-300">
-                    {viewingS2Koleksi
-                      ? 'Temukan 15 artefak mesin, K3, logistik & ekologi di seluruh Kota Industri Stage 2!'
-                      : 'Temukan 15 artefak budaya di butik, kafe, hotel, rumah adat, dek kapal, bukit & pulau!'}
+                    {viewingS3Koleksi
+                      ? 'Temukan 16 artefak AI, kuantum, skywalk, dan glokalisasi di seluruh Kota Digital Stage 3!'
+                      : viewingS2Koleksi
+                        ? 'Temukan 15 artefak mesin, K3, logistik & ekologi di seluruh Kota Industri Stage 2!'
+                        : 'Temukan 15 artefak budaya di butik, kafe, hotel, rumah adat, dek kapal, bukit & pulau!'}
                   </p>
                 </div>
                 <div className="flex gap-1.5">
@@ -660,6 +742,18 @@ export const GameMenuDrawer: React.FC<GameMenuDrawerProps> = ({
                     }`}
                   >
                     Stage 2
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="koleksi-stage-3-btn"
+                    onClick={() => setKoleksiStageView(3)}
+                    className={`rounded-lg px-3 py-1 text-xs font-bold ${
+                      koleksiStageView === 3
+                        ? 'bg-cyan-400 text-slate-950'
+                        : 'border border-slate-700 bg-slate-950 text-slate-300'
+                    }`}
+                  >
+                    Stage 3
                   </button>
                 </div>
               </div>
@@ -710,7 +804,7 @@ export const GameMenuDrawer: React.FC<GameMenuDrawerProps> = ({
                 })}
               </div>
 
-              {!viewingS2Koleksi && (
+              {!viewingS2Koleksi && !viewingS3Koleksi && (
                 <div className="flex flex-wrap gap-1.5">
                   {COLLECTIBLE_FILTERS.map((f) => (
                     <button
@@ -805,16 +899,34 @@ export const GameMenuDrawer: React.FC<GameMenuDrawerProps> = ({
                   >
                     Misi Stage 2
                   </button>
+                  <button
+                    type="button"
+                    data-testid="misi-stage-3-btn"
+                    onClick={() => setMisiStageView(3)}
+                    className={`rounded-lg px-3 py-1 text-xs font-bold ${
+                      misiStageView === 3
+                        ? 'bg-cyan-400 text-slate-950'
+                        : 'border border-slate-700 bg-slate-950 text-slate-300'
+                    }`}
+                  >
+                    Misi Stage 3
+                  </button>
                 </div>
               </div>
 
               <div className="grid gap-5 lg:grid-cols-12">
                 <div className="space-y-3 lg:col-span-7">
-                  {(viewingS2Misi ? STAGE2_QUESTS : STAGE1_QUESTS).map((q) => {
-                    const prog = viewingS2Misi
-                      ? s2.quests[q.id] ?? { status: 'available', stepIndex: 0 }
-                      : s1.quests[q.id] ?? { status: 'available', stepIndex: 0 };
-                    const isTracked = viewingS2Misi ? s2.trackedQuestId === q.id : s1.trackedQuestId === q.id;
+                  {(viewingS3Misi ? STAGE3_QUESTS : viewingS2Misi ? STAGE2_QUESTS : STAGE1_QUESTS).map((q) => {
+                    const prog = viewingS3Misi
+                      ? s3.quests[q.id] ?? { status: 'available', stepIndex: 0 }
+                      : viewingS2Misi
+                        ? s2.quests[q.id] ?? { status: 'available', stepIndex: 0 }
+                        : s1.quests[q.id] ?? { status: 'available', stepIndex: 0 };
+                    const isTracked = viewingS3Misi
+                      ? s3.trackedQuestId === q.id
+                      : viewingS2Misi
+                        ? s2.trackedQuestId === q.id
+                        : s1.trackedQuestId === q.id;
                     const customIds: string[] = [
                       ...('unlockCosmeticId' in q.rewards &&
                       typeof q.rewards.unlockCosmeticId === 'string'
@@ -969,9 +1081,7 @@ export const GameMenuDrawer: React.FC<GameMenuDrawerProps> = ({
                     <ul className="mt-2 space-y-1 text-[11px] text-slate-300">
                       <li className="text-emerald-300">✓ Stage 1: Kota Perdagangan — TERBUKA</li>
                       <li className="text-sky-300">✓ Stage 2: Kota Industri Global — TERBUKA (Naik Kapal di Dermaga!)</li>
-                      <li className="flex items-center gap-1 text-slate-500">
-                        <Lock className="h-3 w-3" /> Stage 3: Kota Digital Tanpa Batas — TERKUNCI
-                      </li>
+                      <li className="text-cyan-300">✓ Stage 3: Kota Digital Masa Depan — TERBUKA (Kereta Cepat Nusantara!)</li>
                     </ul>
                   </div>
                 </div>
@@ -1033,6 +1143,36 @@ export const GameMenuDrawer: React.FC<GameMenuDrawerProps> = ({
                         </div>
                         <p className="mt-1 text-[11px] text-slate-300">{a.description}</p>
                         <div className="mt-2 text-[11px] font-semibold text-sky-300">
+                          Hadiah: +{a.xpReward} XP · +{a.coinReward} Koin
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <h3 className="mb-3 text-sm font-extrabold text-cyan-300">
+                  Pencapaian Stage 3: Kota Digital Masa Depan ({s3.achievements.length}/{STAGE3_ACHIEVEMENTS.length})
+                </h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {STAGE3_ACHIEVEMENTS.map((a) => {
+                    const unlocked = s3.achievements.includes(a.id);
+                    return (
+                      <div
+                        key={a.id}
+                        className={`rounded-xl border p-3.5 text-xs ${
+                          unlocked ? 'border-cyan-400/60 bg-slate-950' : 'border-slate-800 bg-slate-950/60 opacity-75'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-white">{a.title}</span>
+                          <span className={unlocked ? 'font-bold text-emerald-300' : 'text-slate-500'}>
+                            {unlocked ? 'Terbuka' : 'Terkunci'}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-[11px] text-slate-300">{a.description}</p>
+                        <div className="mt-2 text-[11px] font-semibold text-cyan-300">
                           Hadiah: +{a.xpReward} XP · +{a.coinReward} Koin
                         </div>
                       </div>
@@ -1472,7 +1612,7 @@ export const GameMenuDrawer: React.FC<GameMenuDrawerProps> = ({
                 </div>
                 <div className="border-t border-slate-800 pt-3">
                   <p className="mb-2 text-[11px] text-slate-400">
-                    Progres Stage 1 & Stage 2, kostum, gelar, dan inventaris disimpan otomatis ke penyimpanan browser (localStorage).
+                    Progres Stage 1, Stage 2 &amp; Stage 3, kostum, gelar, dan inventaris disimpan otomatis ke penyimpanan browser (localStorage).
                   </p>
                   <button
                     type="button"

@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowUpCircle, Check, Hammer, Lock, RotateCw, X } from 'lucide-react';
 import { BUILDING_CATALOG } from '../../game/data/bermainData';
 import { PlacedBuildingInstance } from '../../game/stage1WorldLogic';
-import { BuildingCategory } from '../../game/types';
+import { BuildingCategory, StageNumber } from '../../game/types';
 
 interface BuildCatalogBarProps {
   open: boolean;
   onClose: () => void;
-  activeStage?: 1 | 2;
+  activeStage?: StageNumber;
   coins: number;
   placedBuildings: PlacedBuildingInstance[];
   unlockedBlueprints: string[];
@@ -47,8 +47,12 @@ export const BuildCatalogBar: React.FC<BuildCatalogBarProps> = ({
   onUpgradeBuilding,
 }) => {
   const [cat, setCat] = useState<BuildingCategory | 'terbangun'>(
-    activeStage === 2 ? 'industri' : 'perdagangan'
+    activeStage === 3 ? 'teknologi' : activeStage === 2 ? 'industri' : 'perdagangan'
   );
+
+  useEffect(() => {
+    setCat(activeStage === 3 ? 'teknologi' : activeStage === 2 ? 'industri' : 'perdagangan');
+  }, [activeStage]);
 
   // Floating Ghost Placement Bar when actively placing a 3D building
   if (activePlacementId) {
@@ -230,7 +234,7 @@ export const BuildCatalogBar: React.FC<BuildCatalogBarProps> = ({
                   <span className="truncate text-xs font-bold text-white">{b.name}</span>
                   {lockedStage ? (
                     <span className="flex shrink-0 items-center gap-0.5 text-[10px] font-bold text-slate-400">
-                      <Lock className="h-3 w-3" /> {b.minStage === 3 ? 'Stg 3 (Terkunci)' : `Stg ${b.minStage}`}
+                      <Lock className="h-3 w-3" /> Stg {b.minStage}
                     </span>
                   ) : lockedBlueprint ? (
                     <span className="flex shrink-0 items-center gap-0.5 text-[10px] text-amber-300">
