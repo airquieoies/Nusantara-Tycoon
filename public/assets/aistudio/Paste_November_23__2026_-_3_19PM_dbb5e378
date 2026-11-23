@@ -1,0 +1,1224 @@
+# NUSANTARA TYCOON: KOTA ERA TANPA BATAS
+## MASTER DEVELOPMENT PROMPT — STAGE 2 + GLOBAL GAME OVERHAUL
+### OPEN-WORLD SOCIAL SIMULATION • CHARACTER CUSTOMIZATION • COSTUME REWARDS • OFFLINE & ONLINE MULTIPLAYER
+
+You are continuing development of an existing 3D open-world game called **Nusantara Tycoon: Kota Era Tanpa Batas**.
+
+Your primary task is to implement **STAGE 2 — KOTA INDUSTRI**, while also upgrading shared game systems so that the improvements apply to **ALL stages**, including Stage 1 and future Stage 3.
+
+This is an existing game project. Do not create a new game, website, dashboard, quiz application, or disconnected prototype.
+
+The overall vision is to create a detailed, lively, immersive, social 3D open-world simulation game inspired by the freedom, exploration, customization, social interaction, and multiplayer experience found in games such as Roblox.
+
+The game must prioritize exploration, player freedom, character identity, missions, rewards, social activities, city development, and fun.
+
+Educational content must remain available, but it must NOT dominate the main gameplay.
+
+---
+
+# 1. CRITICAL PROJECT PRESERVATION
+
+Before implementation:
+
+* Inspect the complete existing project, source code, assets, dependencies, and architecture.
+* Understand how Stage 1 currently works.
+* Identify existing player movement, character customization, camera, world, quests, inventory, rewards, building, economy, UI, and save systems.
+* Reuse and improve existing systems instead of unnecessarily replacing them.
+* Preserve Stage 1's existing map, buildings, quests, NPCs, character progress, and working features.
+* Never reset or overwrite existing player data.
+* Never delete the original Stage 1 content.
+* Do not replace the existing game with a simplified prototype.
+* Do not remove existing educational features.
+* Make safe backups and use backward-compatible save migrations wherever possible.
+
+**Stage 1 is already a developed world. Its upgrade must be an improvement, not a complete redesign or replacement.**
+
+Stage 2 must be a substantial new playable world connected to Stage 1.
+
+Stage 3 must remain locked and undeveloped in this update.
+
+---
+
+# 2. NEW OVERALL GAME IDENTITY
+
+Change the overall gameplay emphasis.
+
+The game should feel like a living open-world social simulation, not an educational application where players spend most of their time reading lessons or answering questions.
+
+The primary gameplay should include:
+
+* Free exploration.
+* Character customization.
+* Main missions and side missions.
+* Costume and accessory collecting.
+* Social interaction.
+* Online multiplayer.
+* Offline solo play.
+* Building and decorating.
+* City activities.
+* Transportation and vehicles.
+* Discoverable locations.
+* Collectibles and achievements.
+* Businesses and economic activities.
+* Special events and challenges.
+
+Educational modes should be optional and accessible through a separate menu.
+
+Players must be able to enjoy the game without constantly being interrupted by learning content.
+
+Create a clear distinction between:
+
+1. **Main Open World:** The primary gameplay experience.
+2. **Missions:** Activities, stories, challenges, and rewards.
+3. **Social:** Friends, multiplayer, and player interactions.
+4. **Customization:** Character appearance, outfits, and accessories.
+5. **Collection:** Items, achievements, and collectibles.
+6. **City Development:** Construction, businesses, and management.
+7. **Learning:** Optional educational content.
+
+---
+
+# 3. GLOBAL FEATURES FOR ALL STAGES
+
+The following features must be shared across Stage 1, Stage 2, and future Stage 3.
+
+Do not implement these systems only in Stage 2.
+
+## A. Shared Character Identity
+
+The player's character must remain consistent across all stages.
+
+Preserve:
+
+* Character appearance.
+* Hairstyles.
+* Face customization.
+* Body appearance options.
+* Clothing.
+* Outfits.
+* Accessories.
+* Owned costumes.
+* Equipped costume.
+* Character name or display name where supported.
+* Character progression.
+
+Traveling between stages must never reset the character's appearance or owned cosmetics.
+
+## B. Shared Mission and Reward System
+
+All stages must use a consistent mission and reward framework.
+
+Players should receive meaningful rewards for exploration, missions, achievements, events, and challenges.
+
+## C. Shared Inventory and Collection
+
+All stages must connect to one persistent player inventory and collection system.
+
+## D. Shared Social and Multiplayer System
+
+Friends and multiplayer features should work across all unlocked stages, subject to the availability of the same online game session or supported travel system.
+
+## E. Shared Save System
+
+Player identity, owned costumes, equipped cosmetics, global progression, inventory, achievements, and unlocked stages must persist.
+
+Stage-specific city progress should be saved separately.
+
+---
+
+# 4. CHARACTER CUSTOMIZATION — MUCH MORE VARIETY
+
+This is one of the highest-priority improvements.
+
+Expand the existing character customization system significantly.
+
+The player must have many more options than the current limited customization.
+
+Create a polished character customization interface with a live 3D character preview.
+
+Allow players to customize:
+
+### Face and Appearance
+* Face shapes.
+* Eye shapes.
+* Eye colors.
+* Eyebrow styles.
+* Nose shapes.
+* Mouth styles.
+* Skin tone options.
+* Facial details.
+* Hair colors.
+* Different hairstyles.
+* Long and short hairstyles.
+* Curly, straight, and wavy hairstyles.
+
+### Body and Clothing
+* Tops.
+* Shirts.
+* Jackets.
+* Hoodies.
+* Dresses.
+* Pants.
+* Shorts.
+* Skirts.
+* Shoes.
+* Boots.
+* Uniforms.
+* Formal clothing.
+* Casual clothing.
+* Traditional clothing.
+* Sportswear.
+* Seasonal clothing.
+
+### Accessories
+* Hats.
+* Caps.
+* Helmets.
+* Glasses.
+* Sunglasses.
+* Bags.
+* Backpacks.
+* Watches.
+* Jewelry.
+* Hair accessories.
+* Scarves.
+* Masks.
+* Other cosmetic accessories.
+
+### Character Presets
+
+Add several starting character styles and allow players to modify them.
+
+The player should not be restricted to a single generic character appearance.
+
+Create visually distinct and recognizable character styles.
+
+Use proper 3D models, geometry, textures, proportions, and clothing assets where supported.
+
+Avoid making the character look like a collection of primitive geometric shapes.
+
+### Customization Quality
+
+* Show a live character preview.
+* Allow players to rotate the character.
+* Provide clear category navigation.
+* Display owned and locked items.
+* Allow players to equip and unequip items.
+* Save the selected appearance.
+* Make outfits visibly update on the actual in-game character.
+* Ensure clothing and accessories remain consistent across stages.
+
+Do not create customization options that only change menu icons without changing the 3D character.
+
+---
+
+# 5. COSTUMES AS MAJOR MISSION REWARDS
+
+This is a central gameplay feature.
+
+**Costumes and exclusive outfits must become one of the main rewards in the entire game.**
+
+Players should feel excited to complete missions because they can unlock unique clothing and cosmetic items.
+
+Create a dedicated wardrobe and costume collection system.
+
+## Reward Types
+
+Mission rewards may include:
+
+* Complete outfits.
+* Shirts and jackets.
+* Pants and skirts.
+* Shoes.
+* Hairstyles.
+* Hats and headwear.
+* Glasses.
+* Bags.
+* Accessories.
+* Special character effects where supported.
+* Coins.
+* XP.
+* Titles.
+* Collectibles.
+* Building decorations.
+* Vehicle cosmetics.
+
+Costumes should be visually distinctive and worth collecting.
+
+## Costume Rarity
+
+Create a rarity system such as:
+
+* Common.
+* Uncommon.
+* Rare.
+* Epic.
+* Legendary.
+* Special Event.
+
+Rarity should affect the visual uniqueness and unlock difficulty of items, not create unfair gameplay advantages.
+
+## Mission-Based Costume Rewards
+
+Examples:
+
+* Completing the Stage 1 harbor storyline unlocks a sailor outfit.
+* Completing a traditional market mission unlocks a traditional-inspired outfit.
+* Completing a cultural event unlocks a special event costume.
+* Completing a factory storyline unlocks an industrial worker outfit.
+* Completing an engineering challenge unlocks an engineer outfit.
+* Completing a difficult logistics mission unlocks a rare industrial jacket.
+* Completing an environmental mission unlocks an environmental guardian outfit.
+* Completing an entire collection unlocks an exclusive legendary costume.
+
+Create a reward preview before the player claims an important costume.
+
+After completing a mission, show a satisfying reward animation or presentation.
+
+Newly unlocked costumes should appear in the wardrobe immediately.
+
+## Costume Collection
+
+Create a wardrobe collection screen displaying:
+
+* All owned costumes.
+* Equipped costumes.
+* Locked costumes.
+* How to unlock each costume.
+* Rarity.
+* Collection completion percentage.
+* Special collection rewards.
+
+Do not make every costume purchasable with ordinary coins.
+
+Many outfits should require completing missions, exploring hidden locations, participating in events, or achieving milestones.
+
+Do not use paid loot boxes or gambling-style reward mechanics.
+
+---
+
+# 6. QUEST AND MISSION SYSTEM FOR ALL STAGES
+
+Upgrade the mission system globally.
+
+Every stage should have:
+
+* Main story missions.
+* Side missions.
+* NPC requests.
+* Exploration challenges.
+* Collection missions.
+* Delivery missions.
+* Timed challenges.
+* Special activities.
+* Hidden missions.
+* Achievement challenges.
+* Event missions.
+
+Mission objectives must be varied and meaningful.
+
+Examples:
+
+* Help an NPC.
+* Find a hidden item.
+* Explore a location.
+* Deliver an object.
+* Operate a vehicle.
+* Complete a production task.
+* Participate in an event.
+* Visit several landmarks.
+* Solve an environmental problem.
+* Help a local business.
+* Complete a transportation challenge.
+
+Create a proper mission journal with:
+
+* Active missions.
+* Completed missions.
+* Available missions.
+* Mission descriptions.
+* Objectives.
+* Locations.
+* Rewards.
+* Progress indicators.
+
+NPCs should visually indicate when they have available missions.
+
+Use appropriate icons, markers, or interaction prompts.
+
+Do not force players to complete educational quizzes to progress through ordinary missions.
+
+Learning missions can exist as optional activities.
+
+---
+
+# 7. STAGE 1 UPGRADE — LIGHT BUT MEANINGFUL
+
+Stage 1 is already good and must remain recognizable.
+
+Do not rebuild the entire Stage 1 map.
+
+Instead, upgrade it carefully with the same global systems introduced by this prompt.
+
+## Stage 1 improvements
+
+1. Integrate the expanded character customization system.
+2. Add the global wardrobe and costume collection.
+3. Add costume rewards to existing missions where appropriate.
+4. Expand the variety of side missions.
+5. Add more optional activities and NPC interactions.
+6. Improve the existing city layout and navigation.
+7. Make important locations easier to find.
+8. Improve building entrances and interior accessibility.
+9. Add more meaningful exploration rewards.
+10. Improve the World Map and transportation connections.
+11. Add social and multiplayer compatibility.
+12. Improve environmental details and NPC activity without destroying the existing atmosphere.
+
+Keep the traditional coastal Nusantara identity.
+
+Preserve the harbor, traditional market, residential areas, cultural locations, existing buildings, and existing playable content.
+
+Do not shrink the map or replace it with a different design.
+
+### Stage 1 Costume Themes
+
+Create unlockable outfits inspired by the world:
+
+* Traditional Nusantara-inspired outfits.
+* Harbor and sailor outfits.
+* Explorer outfits.
+* Market worker outfits.
+* Casual city outfits.
+* Festival and cultural event outfits.
+
+Use original, respectful designs inspired by Indonesian cultural diversity.
+
+Avoid presenting one regional outfit as representing every Indonesian culture.
+
+---
+
+# 8. OFFLINE SOLO AND ONLINE MULTIPLAYER
+
+This is another high-priority global feature.
+
+The game must support two distinct ways to play.
+
+## A. Offline Solo Mode
+
+Players must be able to play alone without an internet connection after the game has been loaded and the required assets are available locally.
+
+Offline mode should support:
+
+* Single-player exploration.
+* Missions.
+* Character customization.
+* Costume collection.
+* Inventory.
+* Building and city development.
+* NPC interactions.
+* Stage travel where the relevant stages are locally available.
+* Saving progress locally.
+
+Offline gameplay must not require a multiplayer server.
+
+If an internet connection is unavailable, the game should automatically offer or continue in offline solo mode.
+
+Display a clear indication that the player is playing offline.
+
+Store offline progress safely using the existing local persistence system.
+
+When an internet connection becomes available, synchronize offline progress safely if cloud synchronization is supported.
+
+Avoid overwriting newer progress with older offline data.
+
+If synchronization conflicts occur, preserve the data and use a safe conflict-resolution strategy.
+
+Clearly distinguish offline progress from online account synchronization.
+
+## B. Online Multiplayer
+
+Create a real online multiplayer system so players can invite friends and explore the world together.
+
+Multiplayer should support:
+
+* Creating an online game session.
+* Joining an existing session.
+* Inviting friends.
+* Accepting invitations.
+* Joining through an invite code where supported.
+* Private sessions.
+* Public sessions where supported.
+* Leaving a session.
+* Returning to solo play.
+* Displaying other players in the same world.
+
+Players in the same session should be able to:
+
+* See each other's characters.
+* See each other's outfits and accessories.
+* Walk and explore together.
+* Interact with supported NPCs and objects.
+* Participate in supported missions together.
+* Visit locations together.
+* Join activities and challenges.
+* Take group photos or pose together where feasible.
+* Communicate through safe text chat or preset messages where supported.
+
+Display multiplayer information such as:
+
+* Player names.
+* Online status.
+* Session members.
+* Invite status.
+* Session capacity.
+* Connection status.
+
+Create a clear and friendly multiplayer lobby or session interface.
+
+## C. Friend Invitation Flow
+
+Implement a usable flow:
+
+1. Player opens the Social or Multiplayer menu.
+2. Player creates or joins an online session.
+3. Player chooses Invite Friends.
+4. Player selects a friend or shares a session invite code/link where supported.
+5. Invited player receives an invitation.
+6. Invited player accepts or declines.
+7. Both players enter the same game session.
+8. Their characters appear in the same world.
+
+Do not create decorative Invite buttons that do nothing.
+
+If the current project has no friend system, implement a practical invitation method compatible with the available backend, such as session codes or shareable invitations.
+
+## D. Multiplayer Technical Requirements
+
+First inspect the existing technology stack and determine what online capabilities are actually available.
+
+If an appropriate backend or realtime service is already configured, reuse it.
+
+If no backend exists, determine whether a supported service can be integrated safely.
+
+Potential architecture may include:
+
+* Authentication or guest identity.
+* Session management.
+* Realtime player state synchronization.
+* Player presence.
+* Invitation or room codes.
+* Cloud persistence.
+* Reconnection handling.
+
+Use secure server-authoritative validation for important shared state where supported.
+
+Do not expose secret API keys or private credentials in client-side source code.
+
+Do not pretend local simulated players are real online users.
+
+Do not claim online multiplayer is implemented if players cannot actually connect through the network.
+
+If real multiplayer cannot be completed because credentials, backend configuration, or external services are unavailable, implement the offline solo mode fully first, prepare the multiplayer architecture, and clearly report the exact remaining setup required.
+
+Do not break offline gameplay because multiplayer is unavailable.
+
+---
+
+# 9. WORLD LAYOUT AND CITY STRUCTURE
+
+Improve the organization of every stage.
+
+The maps should feel deliberately planned, easy to navigate, and large enough to explore.
+
+Avoid randomly scattered buildings, confusing roads, empty spaces, and disconnected districts.
+
+## City Layout Requirements
+
+Each stage should have:
+
+* A recognizable central area.
+* Residential districts.
+* Commercial districts.
+* Main roads.
+* Secondary roads.
+* Pedestrian paths.
+* Public spaces.
+* Landmarks.
+* Transportation hubs.
+* Distinct neighborhoods.
+* Clear district boundaries.
+* Functional connections between important locations.
+
+Use a logical street network with intersections, sidewalks, crossings, and access roads.
+
+Create a clear hierarchy:
+
+1. Main city center.
+2. Major districts.
+3. Neighborhoods.
+4. Individual streets.
+5. Important buildings and landmarks.
+
+## Navigation
+
+Add:
+
+* A readable World Map.
+* Local area map where feasible.
+* Player location marker.
+* Mission destination markers.
+* Landmark markers.
+* Transportation markers.
+* District names.
+* Discoverable locations.
+* Navigation guidance.
+
+Players should understand where they are and how to reach important destinations.
+
+The map should not be so restrictive that players feel trapped.
+
+Avoid unnecessary invisible walls.
+
+Use natural boundaries and accessible routes.
+
+---
+
+# 10. STAGE 2 — KOTA INDUSTRI
+
+Create a new, large, detailed, interconnected industrial city.
+
+Stage 2 must have its own identity, atmosphere, districts, residents, businesses, activities, missions, and story.
+
+## A. Industrial District
+
+Include:
+
+* Manufacturing factories.
+* Assembly plants.
+* Processing facilities.
+* Industrial workshops.
+* Power facilities.
+* Raw material storage.
+* Production buildings.
+* Loading areas.
+* Factory offices.
+* Security facilities.
+
+## B. Logistics and Warehouse District
+
+Include:
+
+* Warehouses.
+* Distribution centers.
+* Cargo terminals.
+* Loading docks.
+* Container yards.
+* Storage facilities.
+* Freight routes.
+* Delivery depots.
+
+## C. Commercial District
+
+Include:
+
+* Shopping streets.
+* Restaurants.
+* Cafes.
+* Convenience stores.
+* Offices.
+* Banks.
+* Markets.
+* Industrial equipment shops.
+* Vehicle dealerships.
+* Service businesses.
+
+## D. Residential District
+
+Include:
+
+* Houses.
+* Apartments.
+* Worker housing.
+* Schools.
+* Clinics.
+* Parks.
+* Community centers.
+* Restaurants.
+* Local businesses.
+
+## E. Transportation District
+
+Include:
+
+* Main roads.
+* Highways.
+* Bridges.
+* Bus terminals.
+* Railway stations.
+* Freight railway facilities.
+* Cargo routes.
+* Parking areas.
+* Pedestrian crossings.
+
+## F. Environmental and Recreation District
+
+Include:
+
+* Rivers.
+* Green spaces.
+* Parks.
+* Recycling facilities.
+* Waste management facilities.
+* Waterfront areas.
+* Recreation spaces.
+
+Each district must connect naturally to the others.
+
+The industrial city should feel large and explorable, not like a small collection of factory models.
+
+---
+
+# 11. STAGE 2 INDUSTRIAL GAMEPLAY
+
+Create a functional production and industrial economy.
+
+Players should experience the industrial process through actual gameplay.
+
+## Production Chain
+
+Implement:
+
+1. Raw material acquisition.
+2. Material processing.
+3. Manufacturing.
+4. Product storage.
+5. Distribution.
+6. Commercial sales.
+
+Players should be able to:
+
+* Obtain materials.
+* Deliver materials.
+* Start production.
+* Monitor production.
+* Collect finished goods.
+* Store products.
+* Transport products.
+* Complete business contracts.
+* Receive rewards.
+
+## Factory Management
+
+Allow players to:
+
+* Unlock factories.
+* Construct facilities.
+* Upgrade production.
+* Improve capacity.
+* Manage materials.
+* Start production tasks.
+* Collect products.
+* Expand operations.
+
+## Logistics
+
+Create delivery missions involving factories, warehouses, shops, and commercial destinations.
+
+Use cargo quantities, delivery targets, routes, and meaningful rewards.
+
+---
+
+# 12. BUILDING AND CITY DEVELOPMENT
+
+Preserve and expand the existing construction system across stages.
+
+Players should be able to:
+
+* Select building plots.
+* Choose buildings.
+* Place buildings in the 3D world.
+* Rotate buildings where supported.
+* Confirm construction.
+* Pay construction costs.
+* Upgrade buildings.
+* Expand facilities.
+* Unlock new construction options.
+
+Stage 2 buildings should include:
+
+* Factories.
+* Warehouses.
+* Distribution centers.
+* Power facilities.
+* Research laboratories.
+* Commercial buildings.
+* Worker housing.
+* Recycling facilities.
+* Public infrastructure.
+
+Buildings must appear in the actual world with correct placement and collision.
+
+Do not make the system a decorative menu or board-game interface.
+
+---
+
+# 13. ENTERABLE BUILDINGS AND INTERIOR EXPLORATION
+
+Important buildings must have functional entrances and exits.
+
+Prioritize enterable:
+
+* Factories.
+* Warehouses.
+* Restaurants.
+* Shops.
+* Banks.
+* Residential buildings.
+* Clinics.
+* Railway stations.
+* Research facilities.
+* City administration offices.
+
+Interiors should contain furniture, equipment, NPCs, and interactive objects appropriate to their purpose.
+
+Do not create empty interiors or fake doors.
+
+Prioritize quality and functionality over a large number of inaccessible buildings.
+
+---
+
+# 14. NPCS AND LIVING WORLD
+
+Create varied NPCs across every stage.
+
+Stage 1 examples:
+
+* Market vendors.
+* Fishermen.
+* Sailors.
+* Shopkeepers.
+* Residents.
+* Tourists.
+* Teachers.
+* Local business owners.
+
+Stage 2 examples:
+
+* Factory workers.
+* Managers.
+* Engineers.
+* Warehouse operators.
+* Truck drivers.
+* Shop owners.
+* Office employees.
+* Security officers.
+* Environmental officers.
+
+NPCs should have:
+
+* Names where appropriate.
+* Distinct clothing.
+* Appropriate locations.
+* Dialogue.
+* Missions.
+* Activities.
+* Daily routines.
+* Reactions to player interactions.
+
+NPCs should walk, work, talk, visit businesses, and perform relevant activities.
+
+Do not populate the world with motionless decorative characters only.
+
+---
+
+# 15. VEHICLES AND TRANSPORTATION
+
+Add functional vehicles where supported.
+
+Prioritize:
+
+* Cars.
+* Delivery vans.
+* Cargo trucks.
+* Buses.
+* Forklifts.
+* Industrial vehicles.
+* Freight trains.
+* Passenger transportation.
+* Passenger ships.
+
+Vehicles should support appropriate entry, exit, controls, camera behavior, collision, and destinations.
+
+Stage 1 should preserve its harbor and passenger ship travel.
+
+Stage 2 should include its industrial transportation network.
+
+Avoid presenting decorative vehicles as functional gameplay.
+
+---
+
+# 16. STAGE 2 STORY MISSIONS
+
+Create a complete main storyline.
+
+### Mission 1: A New Industrial Era
+Explore the city, meet the guide, and visit the administration office.
+
+### Mission 2: The First Factory
+Meet the factory manager, obtain materials, start production, and collect goods.
+
+### Mission 3: Supply Chain Challenge
+Transport products to a warehouse and complete a commercial delivery.
+
+### Mission 4: Building an Industrial Empire
+Construct or unlock a facility and upgrade production.
+
+### Mission 5: Workers Matter
+Meet workers, investigate workplace conditions, and improve worker facilities.
+
+### Mission 6: The Environmental Challenge
+Investigate pollution, visit a recycling facility, and improve environmental conditions.
+
+### Mission 7: A Growing Industrial City
+Expand infrastructure, complete contracts, and improve city indicators.
+
+### Mission 8: The Next Destination
+Complete major industrial milestones and unlock the future progression milestone.
+
+Stage 3 must remain locked and undeveloped.
+
+Add many side missions with varied activities, not only repetitive delivery tasks.
+
+---
+
+# 17. REWARD, XP, INVENTORY AND COLLECTION SYSTEM
+
+Preserve and expand:
+
+* XP.
+* Levels.
+* Currency.
+* Inventory.
+* Achievements.
+* Titles.
+* Collectibles.
+* Wardrobe.
+* Costume collection.
+* Building blueprints.
+* Vehicle unlocks.
+
+Create rare items and hidden collections.
+
+Examples:
+
+* Industrial History Collection.
+* Factory Equipment Collection.
+* Rare Materials Collection.
+* Transportation Collection.
+* City Memorabilia Collection.
+
+Collection completion should unlock special rewards, especially exclusive costumes and accessories.
+
+All important rewards must persist across stages.
+
+---
+
+# 18. CITY ECONOMY AND DEVELOPMENT INDICATORS
+
+Implement meaningful city indicators:
+
+* Industrial production.
+* Employment.
+* Business growth.
+* Trade activity.
+* Worker welfare.
+* Environmental quality.
+* Infrastructure quality.
+* Public satisfaction.
+* City development level.
+
+Player actions should influence these indicators.
+
+For example:
+
+* Building factories increases production.
+* Completing logistics missions improves trade.
+* Improving worker facilities increases welfare.
+* Building infrastructure improves transportation.
+* Recycling improves environmental quality.
+* Supporting local businesses improves business growth.
+
+Avoid decorative statistics with no consequences.
+
+---
+
+# 19. WORLD MAP AND STAGE TRAVEL
+
+Create a functional global World Map showing:
+
+* Stage 1 — Kota Nusantara.
+* Stage 2 — Kota Industri.
+* Stage 3 — Kota Digital Modern.
+
+Display unlock status and player progress.
+
+Stage 3 remains locked.
+
+## Stage 1 to Stage 2
+
+Create an immersive passenger ship journey.
+
+The player must:
+
+1. Visit the Stage 1 harbor.
+2. Find the passenger ship.
+3. Board through an accessible gangway.
+4. Trigger a departure sequence.
+5. Transition to Stage 2.
+6. Arrive at the industrial port.
+7. Continue exploring.
+
+Allow return travel to Stage 1.
+
+Prepare future Stage 2 to Stage 3 travel architecture using a high-speed train or advanced transportation, but do not create or unlock Stage 3.
+
+Multiplayer sessions should handle stage travel consistently where supported.
+
+---
+
+# 20. EDUCATIONAL MODE — OPTIONAL, NOT DOMINANT
+
+Preserve the existing:
+
+* Mode Belajar.
+* Mode Berlatih.
+* Six existing globalisasi learning materials.
+* Ten existing HOTS practice questions and explanations.
+
+Do not delete these features.
+
+However, the main open-world game must not constantly force players into lessons or quizzes.
+
+Educational content should be accessible through a dedicated optional menu.
+
+Players who want to explore, customize their character, complete missions, collect outfits, socialize, or build their city must be able to do so without completing educational quizzes.
+
+Stage 2 may provide optional learning content about:
+
+* Industrialization.
+* Manufacturing.
+* Employment.
+* Global trade.
+* Supply chains.
+* Worker welfare.
+* Environmental impacts.
+* Sustainable development.
+
+Learning content should complement the game rather than interrupt its main experience.
+
+---
+
+# 21. UI AND SOCIAL EXPERIENCE
+
+Create a polished, readable interface.
+
+Include:
+
+* Player HUD.
+* Level and XP.
+* Currency.
+* Mission tracker.
+* Interaction prompts.
+* Inventory.
+* Wardrobe.
+* Collection.
+* World Map.
+* Social menu.
+* Multiplayer menu.
+* Friends and invitations where supported.
+* Session information.
+* Notifications.
+* Reward presentation.
+* Construction interface.
+* Production management.
+
+The 3D world must remain the main focus.
+
+Avoid cluttering the screen with too many menus.
+
+Make the game feel friendly, modern, social, and approachable.
+
+---
+
+# 22. SAVE SYSTEM AND PLAYER DATA
+
+Use persistent data carefully.
+
+Global shared data:
+
+* Character appearance.
+* Owned costumes.
+* Equipped cosmetics.
+* Global XP and level.
+* Inventory.
+* Collections.
+* Achievements.
+* Titles.
+* Unlocked stages.
+* Player identity.
+
+Stage-specific data:
+
+* Local quests.
+* Buildings.
+* Production.
+* Local economy.
+* City indicators.
+* Stage-specific collectibles.
+* Local progression.
+
+Support offline local saving.
+
+Support cloud synchronization if an appropriate online backend is available.
+
+Do not overwrite existing Stage 1 data.
+
+Use safe data migrations.
+
+Handle reconnects and synchronization conflicts without silently deleting progress.
+
+---
+
+# 23. VISUAL QUALITY AND PERFORMANCE
+
+Create distinct visual identities for every stage.
+
+Stage 1:
+Traditional coastal Nusantara city, harbor, markets, local culture, community, and maritime atmosphere.
+
+Stage 2:
+Modern industrial city, factories, warehouses, cargo terminals, transportation networks, businesses, and worker neighborhoods.
+
+Future Stage 3:
+A future modern digital city, reserved for later development only.
+
+Use:
+
+* Detailed 3D architecture.
+* Appropriate textures.
+* Realistic proportions.
+* Character animations.
+* Lighting and shadows.
+* Environmental effects.
+* Distinct neighborhoods.
+* Meaningful landmarks.
+* Optimized rendering.
+* Level-of-detail techniques where possible.
+
+Avoid identical repeated buildings and empty decorative environments.
+
+Maintain reliable movement, collision, interactions, loading, and save behavior.
+
+---
+
+# 24. DEVELOPMENT PRIORITIES AND EXECUTION
+
+Do not stop after writing a plan or generating a mockup.
+
+Implement directly in the existing project.
+
+Follow this priority order:
+
+1. Inspect and protect existing Stage 1.
+2. Improve shared character customization.
+3. Implement wardrobe and costume rewards globally.
+4. Improve global mission and reward systems.
+5. Improve world layout and navigation.
+6. Add offline solo functionality and local persistence.
+7. Inspect and implement real online multiplayer where technically supported.
+8. Integrate global social systems.
+9. Build Stage 2's complete industrial world.
+10. Implement Stage 2 missions and production gameplay.
+11. Implement construction, interiors, NPCs, and transportation.
+12. Implement World Map and stage travel.
+13. Integrate shared inventory, collections, and save systems.
+14. Preserve optional educational modes.
+15. Test Stage 1 and Stage 2 thoroughly.
+
+If the full scope cannot be completed in one implementation pass, prioritize a stable, coherent, playable experience and continue extending the same project.
+
+Do not delete functioning systems to make implementation easier.
+
+Do not create fake functionality or claim completion for features that are only visual placeholders.
+
+Do not ask me to submit separate prompts for individual features.
+
+---
+
+# 25. FINAL QUALITY ASSURANCE
+
+Verify the following before declaring the update complete:
+
+### Stage 1
+* Existing map and content remain intact.
+* Existing progress is preserved.
+* Expanded customization works.
+* Costume rewards work.
+* Wardrobe works.
+* Mission improvements work.
+* Navigation is clearer.
+* Existing educational modes still work.
+
+### Stage 2
+* Industrial city is large and explorable.
+* District layout is organized.
+* Buildings can be entered where intended.
+* NPCs interact and behave appropriately.
+* Main and side missions work.
+* Industrial production works.
+* Construction works.
+* Vehicles work where implemented.
+* Rewards and costume unlocks work.
+* Collections work.
+* City indicators respond to player actions.
+
+### Shared Features
+* Character appearance persists across stages.
+* Costumes remain owned and equipped.
+* Inventory persists.
+* Global progression persists.
+* Stage-specific progress is saved separately.
+* World Map works.
+* Stage travel works.
+* Offline solo play works.
+* Local saving works.
+* Online multiplayer works if its required backend is configured.
+* Invitations actually connect players to the same session when multiplayer is available.
+* No fake online players or decorative invitation buttons.
+* Stage 3 remains locked.
+* Educational modes remain optional and functional.
+
+---
+
+# FINAL CREATIVE DIRECTION
+
+The goal is to create a genuine, detailed, social 3D open-world simulation experience.
+
+Players should feel that they own their character, can express their style, explore a living city, complete exciting missions, earn exclusive costumes, collect rare items, build their own progress, and spend time with friends.
+
+The game should reward curiosity and exploration.
+
+A player should be excited to complete a mission because they might unlock a beautiful, rare, or exclusive outfit.
+
+A player should be able to play alone offline when they want, or invite friends and explore together when online multiplayer is available.
+
+Stage 1 should become more polished without losing its existing identity.
+
+Stage 2 should introduce a completely new industrial world with deeper gameplay.
+
+The educational modes should remain available, but the main experience should be fun, open, social, and rewarding.
+
+**Do not make a small demo. Do not simplify the existing game. Do not replace Stage 1. Build a cohesive open-world game in which all stages share the same high-quality character, reward, mission, social, and persistence systems.**
+
+Now inspect the existing project and begin implementing this complete Stage 2 expansion and global game upgrade.

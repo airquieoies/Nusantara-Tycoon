@@ -1,0 +1,6 @@
+{
+  "name": "Nusantara Tycoon: Kota Era Tanpa Batas",
+  "description": "Game simulasi pembangunan kota dan pembelajaran Sosiologi Kelas XII (Perubahan Sosial dan Globalisasi) — Kelompok 3 XII-9.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
